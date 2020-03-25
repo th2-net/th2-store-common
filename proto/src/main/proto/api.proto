@@ -21,7 +21,7 @@ message StoreEventRequest {
   google.protobuf.Timestamp eventStartTimestamp = 4;
   google.protobuf.Timestamp eventEndTimestamp = 5;
   google.protobuf.StringValue parentEventId = 6;
-  google.protobuf.StringValue reportId = 7;
+  string reportId = 7;
   bool success = 8;
   repeated string attachedMessageIds = 9;
   bytes body = 10;

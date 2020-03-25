@@ -39,6 +39,7 @@ public class ReportEventStoreService extends EventStoreServiceVertxImplBase {
         report.setName(r.getReportName());
         report.setSuccess(r.getSuccess());
         report.setTimestamp(TimeHelper.toInstant(r.getReportStartTimestamp()));
+        report.setContent(new byte[0]);
         return report;
       })
       .flatMap(report -> vertx.rxExecuteBlocking(
@@ -63,10 +64,10 @@ public class ReportEventStoreService extends EventStoreServiceVertxImplBase {
         result.setId(r.getEventId());
         result.setName(r.getEventName());
         result.setType(r.getEventType());
-        result.setParentId(r.getParentEventId().getValue());
-        result.setReportId(r.getReportId().getValue());
-        result.setStartTimestamp(TimeHelper.toInstant(r.getEventStartTimestamp()));
-        result.setEndTimestamp(TimeHelper.toInstant(r.getEventEndTimestamp()));
+        result.setParentId(r.hasParentEventId()? r.getParentEventId().getValue(): null);
+        result.setReportId(r.getReportId());
+        result.setStartTimestamp(r.hasEventStartTimestamp()? TimeHelper.toInstant(r.getEventStartTimestamp()): null);
+        result.setEndTimestamp(r.hasEventEndTimestamp()? TimeHelper.toInstant(r.getEventEndTimestamp()): null);
         result.setSuccess(r.getSuccess());
         result.setContent(r.getBody().toByteArray());
         return result;

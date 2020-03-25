@@ -22,13 +22,14 @@ application {
 
 sourceCompatibility = '1.8'
 
-def mainVerticleName = 'com.exactpro.evolution.eventstore.eventstore.MainVerticle'
+def mainVerticleName = 'com.exactpro.evolution.eventstore.MainVerticle'
 def watchForChange = 'src/**/*'
 def doOnChange = './gradlew classes'
 
 dependencies {
   implementation project(":proto")
   implementation "com.exactpro.cradle:cradle-cassandra"
+  implementation "com.exactpro.cradle:cradle-core"
   implementation "io.vertx:vertx-rx-java2:$vertxVersion"
 
   testImplementation group: 'org.mockito', name: 'mockito-all', version: '1.10.19'
