@@ -1,0 +1,3 @@
+[submodule "cradle"]
+	path = cradle
+	url = https://gitlab.exactpro.com/vivarium/cradle.git

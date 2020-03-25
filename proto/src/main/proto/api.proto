@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+option java_multiple_files = true;
+option java_package = "com.exactpro.evolution.eventstore";
+
+message StoreReportRequest {
+  string reportId = 1;
+  string reportName = 2;
+  bool success = 3;
+  google.protobuf.Timestamp reportStartTimestamp = 4;
+}
+
+message StoreEventRequest {
+  string eventId = 1;
+  string eventName = 2;
+  string eventType = 3;
+  google.protobuf.Timestamp eventStartTimestamp = 4;
+  google.protobuf.Timestamp eventEndTimestamp = 5;
+  google.protobuf.StringValue parentEventId = 6;
+  google.protobuf.StringValue reportId = 7;
+  bool success = 8;
+  repeated string attachedMessageIds = 9;
+  bytes body = 10;
+}
+
+message Response {
+  google.protobuf.StringValue error = 1;
+  google.protobuf.StringValue id = 2;
+}
+
+service EventStoreService {
+  rpc StoreReport(StoreReportRequest) returns (Response);
+  rpc StoreEvent(StoreEventRequest) returns (Response);
+}

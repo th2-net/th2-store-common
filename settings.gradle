@@ -1,0 +1,9 @@
+rootProject.name = 'EventStore'
+includeBuild ('cradle') {
+  dependencySubstitution {
+    substitute module('com.exactpro.cradle:cradle-core') with project(':cradle-core')
+    substitute module('com.exactpro.cradle:cradle-cassandra') with project(':cradle-cassandra')
+  }
+}
+include 'proto'
+

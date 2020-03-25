@@ -1,0 +1,78 @@
+package com.exactpro.evolution.eventstore;
+
+import com.exactpro.cradle.CradleManager;
+import com.exactpro.cradle.StoredReport;
+import com.exactpro.cradle.StoredTestEvent;
+import com.exactpro.evolution.eventstore.EventStoreServiceGrpc.EventStoreServiceVertxImplBase;
+import com.exactpro.evolution.eventstore.utils.AsyncHelper;
+import com.exactpro.evolution.eventstore.utils.TimeHelper;
+import com.google.protobuf.StringValue;
+import io.reactivex.Single;
+import io.vertx.core.Promise;
+import io.vertx.reactivex.core.Vertx;
+import io.vertx.reactivex.core.shareddata.Lock;
+
+
+public class ReportEventStoreService extends EventStoreServiceVertxImplBase {
+  private static final String STORAGE_LOCK_NAME = "CassandraStorageLock";
+  private CradleManager cradleManager;
+  private Vertx vertx;
+
+  public ReportEventStoreService(CradleManager cradleManager, Vertx vertx) {
+    this.cradleManager = cradleManager;
+    this.vertx = vertx;
+  }
+
+  @Override
+  public void storeReport(StoreReportRequest request, Promise<Response> response) {
+    vertx.sharedData().rxGetLock(STORAGE_LOCK_NAME).flatMap(l -> storeReport(request, l))
+      .doOnSuccess(id -> response.complete(Response.newBuilder().setId(StringValue.of(id)).build()))
+      .doOnError(e -> response.complete(Response.newBuilder().setError(StringValue.of(e.toString())).build()))
+      .subscribe();
+  }
+
+  private Single<String> storeReport(StoreReportRequest request, Lock lock) {
+    return Single.just(request)
+      .map(r -> {
+        StoredReport report = new StoredReport();
+        report.setId(r.getReportId());
+        report.setName(r.getReportName());
+        report.setSuccess(r.getSuccess());
+        report.setTimestamp(TimeHelper.toInstant(r.getReportStartTimestamp()));
+        return report;
+      })
+      .flatMap(report -> vertx.rxExecuteBlocking(
+          AsyncHelper.createHandler(() -> cradleManager.getStorage().storeReport(report))
+        ).toSingle()
+      )
+      .doFinally(lock::release);
+  }
+
+  @Override
+  public void storeEvent(StoreEventRequest request, Promise<Response> response) {
+    vertx.sharedData().rxGetLock(STORAGE_LOCK_NAME).flatMap(l -> storeEvent(request, l))
+      .doOnSuccess(id -> response.complete(Response.newBuilder().setId(StringValue.of(id)).build()))
+      .doOnError(e -> response.complete(Response.newBuilder().setError(StringValue.of(e.toString())).build()))
+      .subscribe();
+  }
+
+  private Single<String> storeEvent(StoreEventRequest request, Lock lock) {
+    return Single.just(request)
+      .map(r -> {
+        StoredTestEvent result = new StoredTestEvent();
+        result.setId(r.getEventId());
+        result.setName(r.getEventName());
+        result.setType(r.getEventType());
+        result.setParentId(r.getParentEventId().getValue());
+        result.setReportId(r.getReportId().getValue());
+        result.setStartTimestamp(TimeHelper.toInstant(r.getEventStartTimestamp()));
+        result.setEndTimestamp(TimeHelper.toInstant(r.getEventEndTimestamp()));
+        result.setSuccess(r.getSuccess());
+        result.setContent(r.getBody().toByteArray());
+        return result;
+      }).flatMap(event -> vertx.rxExecuteBlocking(
+          AsyncHelper.createHandler(() -> cradleManager.getStorage().storeTestEvent(event))
+        ).toSingle()
+      ).doFinally(lock::release);
+  }
+}
