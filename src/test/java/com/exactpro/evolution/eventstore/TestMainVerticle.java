@@ -1,6 +1,7 @@
 package com.exactpro.evolution.eventstore;
 
 import com.exactpro.cradle.CradleManager;
+import com.exactpro.evolution.common.CassandraConfig;
 import io.grpc.ManagedChannel;
 import io.vertx.grpc.VertxChannelBuilder;
 import io.vertx.junit5.Checkpoint;
@@ -34,7 +35,7 @@ public class TestMainVerticle {
 
   @BeforeEach
   void deploy_verticle(Vertx vertx, VertxTestContext testContext) {
-    Config config = new Config();
+    CassandraConfig config = new CassandraConfig();
     config.setInstanceName("test");
     CradleManagerMock manager = Mockito.spy(CradleManagerMock.class);
     Mockito.when(manager.createStorage()).thenReturn(Mockito.spy(CradleStorageMock.class));
@@ -46,7 +47,7 @@ public class TestMainVerticle {
       .build();
     EventStoreServiceGrpc.EventStoreServiceVertxStub stub = EventStoreServiceGrpc.newVertxStub(channel);
     testData.put(SERVICE_STUB_KEY, stub);
-    vertx.deployVerticle(new MainVerticle(config, manager), testContext.succeeding(id -> testContext.completeNow()));
+    vertx.deployVerticle(new EventStoreVerticle(config, manager), testContext.succeeding(id -> testContext.completeNow()));
   }
 
   @Test

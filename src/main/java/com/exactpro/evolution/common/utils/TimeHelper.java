@@ -1,4 +1,4 @@
-package com.exactpro.evolution.eventstore.utils;
+package com.exactpro.evolution.common.utils;
 
 import com.google.protobuf.Timestamp;
 

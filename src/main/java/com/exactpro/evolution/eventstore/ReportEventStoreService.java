@@ -4,13 +4,12 @@ import com.exactpro.cradle.CradleManager;
 import com.exactpro.cradle.StoredReport;
 import com.exactpro.cradle.StoredTestEvent;
 import com.exactpro.evolution.eventstore.EventStoreServiceGrpc.EventStoreServiceVertxImplBase;
-import com.exactpro.evolution.eventstore.utils.AsyncHelper;
-import com.exactpro.evolution.eventstore.utils.TimeHelper;
+import com.exactpro.evolution.common.utils.AsyncHelper;
+import com.exactpro.evolution.common.utils.TimeHelper;
 import com.google.protobuf.StringValue;
 import io.reactivex.Single;
 import io.vertx.core.Promise;
 import io.vertx.reactivex.core.Vertx;
-import io.vertx.reactivex.core.shareddata.Lock;
 
 
 public class ReportEventStoreService extends EventStoreServiceVertxImplBase {
@@ -25,13 +24,14 @@ public class ReportEventStoreService extends EventStoreServiceVertxImplBase {
 
   @Override
   public void storeReport(StoreReportRequest request, Promise<Response> response) {
-    vertx.sharedData().rxGetLock(STORAGE_LOCK_NAME).flatMap(l -> storeReport(request, l))
+    AsyncHelper.executeWithLock(vertx, STORAGE_LOCK_NAME, storeReport(request)
       .doOnSuccess(id -> response.complete(Response.newBuilder().setId(StringValue.of(id)).build()))
       .doOnError(e -> response.complete(Response.newBuilder().setError(StringValue.of(e.toString())).build()))
-      .subscribe();
+      .ignoreElement()
+    ).subscribe();
   }
 
-  private Single<String> storeReport(StoreReportRequest request, Lock lock) {
+  private Single<String> storeReport(StoreReportRequest request) {
     return Single.just(request)
       .map(r -> {
         StoredReport report = new StoredReport();
@@ -45,19 +45,19 @@ public class ReportEventStoreService extends EventStoreServiceVertxImplBase {
       .flatMap(report -> vertx.rxExecuteBlocking(
           AsyncHelper.createHandler(() -> cradleManager.getStorage().storeReport(report))
         ).toSingle()
-      )
-      .doFinally(lock::release);
+      );
   }
 
   @Override
   public void storeEvent(StoreEventRequest request, Promise<Response> response) {
-    vertx.sharedData().rxGetLock(STORAGE_LOCK_NAME).flatMap(l -> storeEvent(request, l))
+    AsyncHelper.executeWithLock(vertx, STORAGE_LOCK_NAME, storeEvent(request)
       .doOnSuccess(id -> response.complete(Response.newBuilder().setId(StringValue.of(id)).build()))
       .doOnError(e -> response.complete(Response.newBuilder().setError(StringValue.of(e.toString())).build()))
-      .subscribe();
+      .ignoreElement()
+    ).subscribe();
   }
 
-  private Single<String> storeEvent(StoreEventRequest request, Lock lock) {
+  private Single<String> storeEvent(StoreEventRequest request) {
     return Single.just(request)
       .map(r -> {
         StoredTestEvent result = new StoredTestEvent();
@@ -74,6 +74,6 @@ public class ReportEventStoreService extends EventStoreServiceVertxImplBase {
       }).flatMap(event -> vertx.rxExecuteBlocking(
           AsyncHelper.createHandler(() -> cradleManager.getStorage().storeTestEvent(event))
         ).toSingle()
-      ).doFinally(lock::release);
+      );
   }
 }

@@ -1,7 +1,11 @@
-package com.exactpro.evolution.eventstore.utils;
+package com.exactpro.evolution.common.utils;
 
+import io.reactivex.Completable;
+import io.reactivex.Single;
 import io.vertx.core.Handler;
 import io.vertx.reactivex.core.Promise;
+import io.vertx.reactivex.core.Vertx;
+import io.vertx.reactivex.core.shareddata.Lock;
 
 public class AsyncHelper {
   public interface ExceptionfullSupplier<T> {
@@ -26,6 +30,17 @@ public class AsyncHelper {
     return result;
   }
 
+  public static <T> Handler<Promise<T>> createHandler(ExceptionfullRunnable code) {
+    return (Promise<T> promise) -> {
+      try {
+        code.execute();
+        promise.complete();
+      } catch (Exception e) {
+        promise.fail(e);
+      }
+    };
+  }
+
   public static <T> Handler<Promise<T>> createHandler(ExceptionfullSupplier<T> code) {
     return (Promise<T> promise) -> {
       try {
@@ -34,6 +49,11 @@ public class AsyncHelper {
         promise.fail(e);
       }
     };
+  }
+
+  public static Completable executeWithLock(Vertx vertx, String lockName, Completable operation) {
+    return vertx.sharedData().rxGetLock(lockName)
+      .flatMapCompletable(l -> operation.doFinally(l::release));
   }
 
   public static Promise<Void> wrapIntoPromise(ExceptionfullRunnable code) {

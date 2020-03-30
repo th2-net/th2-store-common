@@ -9,6 +9,11 @@ version = '1.0.0-SNAPSHOT'
 
 repositories {
   mavenCentral()
+  maven {
+    name 'Artifactory'
+    url 'http://artifactory5.exp.exactpro.com/artifactory/libs-snapshot'
+  }
+  mavenLocal()
 }
 
 ext {
@@ -22,7 +27,7 @@ application {
 
 sourceCompatibility = '1.8'
 
-def mainVerticleName = 'com.exactpro.evolution.eventstore.MainVerticle'
+def mainVerticleName = 'com.exactpro.evolution.MainVerticle'
 def watchForChange = 'src/**/*'
 def doOnChange = './gradlew classes'
 
@@ -31,7 +36,14 @@ dependencies {
   implementation "com.exactpro.cradle:cradle-cassandra"
   implementation "com.exactpro.cradle:cradle-core"
   implementation "io.vertx:vertx-rx-java2:$vertxVersion"
+  implementation "io.vertx:vertx-rabbitmq-client:$vertxVersion"
 
+  implementation("com.exactpro.evolution.demo:rabbitmq-client") {
+    exclude group: "io.grpc", module: "grpc-netty"
+  }
+
+  testImplementation "org.powermock:powermock-module-junit4:2.0.2"
+  testImplementation "org.powermock:powermock-api-mockito:1.7.4"
   testImplementation group: 'org.mockito', name: 'mockito-all', version: '1.10.19'
   testImplementation "io.vertx:vertx-junit5:$vertxVersion"
   testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junitJupiterEngineVersion"

@@ -8,7 +8,7 @@
  * information which is the property of Exactpro Systems LLC or its licensors.
  ******************************************************************************/
 
-package com.exactpro.evolution.eventstore;
+package com.exactpro.evolution.common;
 
 import com.exactpro.cradle.cassandra.connection.CassandraConnectionSettings;
 
@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Properties;
 
-public class Config
+public class CassandraConfig
 {
   private CassandraConnectionSettings connectionSettings;
 	private String instanceName;
@@ -39,10 +39,10 @@ public class Config
     this.instanceName = instanceName;
   }
 
-  public static Config loadFrom(File config) throws IOException {
+  public static CassandraConfig loadFrom(File config) throws IOException {
     Properties props = new Properties();
     props.load(new FileInputStream(config));
-    Config result = new Config();
+    CassandraConfig result = new CassandraConfig();
     CassandraConnectionSettings settings = new CassandraConnectionSettings(
       props.getProperty("datacenter", ""),
       props.getProperty("host", ""),
