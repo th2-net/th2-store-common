@@ -1,16 +1,16 @@
 rootProject.name = 'EventStore'
-includeBuild ('cradle') {
-  dependencySubstitution {
-    substitute module('com.exactpro.cradle:cradle-core') with project(':cradle-core')
-    substitute module('com.exactpro.cradle:cradle-cassandra') with project(':cradle-cassandra')
-  }
-}
-includeBuild ('EvolutionDemo') {
-  dependencySubstitution {
-    substitute module('com.exactpro.evolution.demo:rabbitmq-client') with project(':rabbitmq-client')
-    substitute module('com.exactpro.evolution.demo:connectivity-service') with project(':connectivity-service')
-    substitute module('com.exactpro.evolution.demo:grpc-client') with project(':grpc-client')
-  }
-}
+//includeBuild ('cradle') {
+//  dependencySubstitution {
+//    substitute module('com.exactpro.cradle:cradle-core') with project(':cradle-core')
+//    substitute module('com.exactpro.cradle:cradle-cassandra') with project(':cradle-cassandra')
+//  }
+//}
+//includeBuild ('EvolutionDemo') {
+//  dependencySubstitution {
+//    substitute module('com.exactpro.evolution.demo:rabbitmq-client') with project(':rabbitmq-client')
+//    substitute module('com.exactpro.evolution.demo:connectivity-service') with project(':connectivity-service')
+//    substitute module('com.exactpro.evolution.demo:grpc-client') with project(':grpc-client')
+//  }
+//}
 include 'proto'
 

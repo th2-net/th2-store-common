@@ -38,6 +38,7 @@ protobuf {
       artifact = "io.vertx:protoc-gen-grpc-java:${vertxGrpcVersion}"
     }
   }
+  generateProtoTasks.generatedFilesBaseDir = 'src/gen'
   generateProtoTasks {
     all()*.plugins {
       grpc
@@ -47,9 +48,10 @@ protobuf {
 
 sourceSets {
   main {
-    java {
-      srcDir "$buildDir/generated/source/proto/main/java"
-      srcDir "$buildDir/generated/source/proto/main/grpc"
-    }
+
+      java {
+          srcDirs 'src/main/java', 'src/gen/main/java', 'src/gen/main/grpc'
+      }
   }
 }
+compileJava.dependsOn.add('generateProto')

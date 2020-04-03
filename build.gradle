@@ -4,21 +4,25 @@ plugins {
   id 'com.github.johnrengelman.shadow' version '5.0.0'
 }
 
+ext {
+  sharedDir = file("${project.rootDir}/shared")
+  vertxVersion = '3.8.5'
+  junitJupiterEngineVersion = '5.4.0'
+}
+
 group = 'com.exactpro.evolution.eventstore'
 version = '1.0.0-SNAPSHOT'
 
 repositories {
+  maven {
+    name 'MavenLocal'
+    url sharedDir
+  }
   mavenCentral()
   maven {
     name 'Artifactory'
     url 'http://artifactory5.exp.exactpro.com/artifactory/libs-snapshot'
   }
-  mavenLocal()
-}
-
-ext {
-  vertxVersion = '3.8.5'
-  junitJupiterEngineVersion = '5.4.0'
 }
 
 application {
@@ -32,15 +36,19 @@ def watchForChange = 'src/**/*'
 def doOnChange = './gradlew classes'
 
 dependencies {
+  compile "com.exactpro.cradle:cradle-cassandra:1.0-SNAPSHOT"
+  compile "com.exactpro.cradle:cradle-core:1.0-SNAPSHOT"
+  compile "com.exactpro.th2:grpc-api:1.0-SNAPSHOT"
+  compile "com.exactpro.th2:th2-common:1.0-SNAPSHOT"
   implementation project(":proto")
-  implementation "com.exactpro.cradle:cradle-cassandra"
-  implementation "com.exactpro.cradle:cradle-core"
+//   implementation "com.exactpro.cradle:cradle-cassandra"
+//   implementation "com.exactpro.cradle:cradle-core"
   implementation "io.vertx:vertx-rx-java2:$vertxVersion"
   implementation "io.vertx:vertx-rabbitmq-client:$vertxVersion"
 
-  implementation("com.exactpro.evolution.demo:rabbitmq-client") {
-    exclude group: "io.grpc", module: "grpc-netty"
-  }
+//  implementation("com.exactpro.evolution.demo:rabbitmq-client") {
+//    exclude group: "io.grpc", module: "grpc-netty"
+//  }
 
   testImplementation "org.powermock:powermock-module-junit4:2.0.2"
   testImplementation "org.powermock:powermock-api-mockito:1.7.4"

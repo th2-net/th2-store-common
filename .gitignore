@@ -185,3 +185,4 @@ nbdist/
 !.vscode/extensions.json
 /proto/build/
 /build/
+/shared/

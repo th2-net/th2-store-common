@@ -1,15 +1,18 @@
 package com.exactpro.evolution.eventstore;
 
 import com.exactpro.cradle.CradleManager;
+import com.exactpro.cradle.StoredMessageId;
 import com.exactpro.cradle.StoredReport;
 import com.exactpro.cradle.StoredTestEvent;
-import com.exactpro.evolution.eventstore.EventStoreServiceGrpc.EventStoreServiceVertxImplBase;
 import com.exactpro.evolution.common.utils.AsyncHelper;
 import com.exactpro.evolution.common.utils.TimeHelper;
+import com.exactpro.evolution.eventstore.EventStoreServiceGrpc.EventStoreServiceVertxImplBase;
 import com.google.protobuf.StringValue;
 import io.reactivex.Single;
 import io.vertx.core.Promise;
 import io.vertx.reactivex.core.Vertx;
+
+import java.util.stream.Collectors;
 
 
 public class ReportEventStoreService extends EventStoreServiceVertxImplBase {
@@ -72,7 +75,17 @@ public class ReportEventStoreService extends EventStoreServiceVertxImplBase {
         result.setContent(r.getBody().toByteArray());
         return result;
       }).flatMap(event -> vertx.rxExecuteBlocking(
-          AsyncHelper.createHandler(() -> cradleManager.getStorage().storeTestEvent(event))
+          AsyncHelper.createHandler(() -> {
+              String eventId = cradleManager.getStorage().storeTestEvent(event);
+              if (request.getAttachedMessageIdsCount() != 0) {
+                  cradleManager.getStorage().storeTestEventMessagesLink(eventId,
+                      request.getAttachedMessageIdsList().stream()
+                          .map(StoredMessageId::new)
+                          .collect(Collectors.toSet())
+                  );
+              }
+              return eventId;
+          })
         ).toSingle()
       );
   }
