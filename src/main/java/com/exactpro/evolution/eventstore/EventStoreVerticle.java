@@ -5,6 +5,7 @@ import com.exactpro.cradle.cassandra.CassandraCradleManager;
 import com.exactpro.cradle.cassandra.connection.CassandraConnection;
 import com.exactpro.evolution.common.CassandraConfig;
 import com.exactpro.evolution.common.utils.AsyncHelper;
+import com.exactpro.evolution.messagestore.Configuration;
 import io.reactivex.Completable;
 import io.vertx.grpc.VertxServerBuilder;
 import io.vertx.reactivex.core.AbstractVerticle;
@@ -18,26 +19,15 @@ import static java.lang.System.getenv;
 import static org.apache.commons.lang3.ObjectUtils.defaultIfNull;
 
 public class EventStoreVerticle extends AbstractVerticle {
-    private static final String DEFAULT_CONFIG_FILE_NAME = "EventStore.cfg";
     private CradleManager cradleManager;
-    private CassandraConfig config;
+    private final Configuration config = new Configuration();
 
     public EventStoreVerticle() throws IOException {
-        config = CassandraConfig.loadFrom(new File(DEFAULT_CONFIG_FILE_NAME));
-        cradleManager = new CassandraCradleManager(new CassandraConnection(config.getConnectionSettings()));
+        cradleManager = new CassandraCradleManager(new CassandraConnection(config.getCassandraConfig().getConnectionSettings()));
     }
 
-    public EventStoreVerticle(CradleManager cradleManager) throws IOException {
-        this(CassandraConfig.loadFrom(new File(DEFAULT_CONFIG_FILE_NAME)), cradleManager);
-    }
-
-    public EventStoreVerticle(CassandraConfig config) {
-        this(config, new CassandraCradleManager(new CassandraConnection(config.getConnectionSettings())));
-    }
-
-    public EventStoreVerticle(CassandraConfig config, CradleManager cradleManager) {
+    public EventStoreVerticle(CradleManager cradleManager) {
         this.cradleManager = cradleManager;
-        this.config = config;
     }
 
     @Override
@@ -60,6 +50,6 @@ public class EventStoreVerticle extends AbstractVerticle {
 
     private Completable initManager() {
         return vertx.<Void>rxExecuteBlocking(AsyncHelper
-            .createHandler(() -> cradleManager.init(config.getInstanceName()))).ignoreElement();
+            .createHandler(() -> cradleManager.init(config.getCradleInstanceName()))).ignoreElement();
     }
 }

@@ -27,6 +27,7 @@ import com.exactpro.evolution.api.phase_1.Message;
 import com.exactpro.evolution.api.phase_1.SessionId;
 import com.exactpro.evolution.common.CassandraConfig;
 import com.exactpro.evolution.common.TcpCradleStream;
+import com.exactpro.evolution.configuration.RabbitMQConfiguration;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Delivery;
 import org.apache.mina.util.ConcurrentHashSet;
@@ -39,44 +40,41 @@ import java.time.Instant;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
+import static com.exactpro.evolution.ConfigurationUtils.safeLoad;
+import static com.exactpro.evolution.configuration.Th2Configuration.getEnvRabbitMQExchangeNameTH2Connectivity;
 import static java.lang.System.getenv;
 import static org.apache.commons.lang3.ObjectUtils.defaultIfNull;
 import static org.apache.commons.lang3.math.NumberUtils.toInt;
 
 public class DemoMessageStore {
     private final Logger logger = LoggerFactory.getLogger(getClass().getName() + "@" + hashCode());
-
-    private static final String ENV_RABBIT_QM_HOST = "RABBIT_QM_HOST";
-    private static final String ENV_RABBIT_QM_PORT = "RABBIT_QM_PORT";
-    private static final String ENV_RABBIT_QM_USER = "RABBIT_QM_USER";
-    private static final String ENV_RABBIT_QM_PASS = "RABBIT_QM_PASS";
-    private static final String ENV_RABBIT_QM_VHOST = "RABBIT_QM_VHOST";
+    private final Configuration configuration;
 
     private RabbitMqSubscriber inMsgSubscriber;
     private RabbitMqSubscriber outMsgSubscriber;
     private CradleManager cradleManager;
     private final Set<String> streamNames = new ConcurrentHashSet<>();
 
+    public DemoMessageStore(Configuration configuration) {
+        this.configuration = configuration;
+    }
+
     public void init() throws IOException, CradleStorageException, TimeoutException {
-        CassandraConfig cassandraConfig = CassandraConfig.loadFrom(new File("EventStore.cfg"));
+        CassandraConfig cassandraConfig = configuration.getCassandraConfig();
+        RabbitMQConfiguration rabbitMQ = configuration.getRabbitMQ();
         cradleManager = new CassandraCradleManager(new CassandraConnection(cassandraConfig.getConnectionSettings()));
-        cradleManager.init(cassandraConfig.getInstanceName());
+        cradleManager.init(configuration.getCradleInstanceName());
         // FIXME get info about connectivities from variables or config and request QueueInfo
-        outMsgSubscriber = new RabbitMqSubscriber("demo_exchange",
+        outMsgSubscriber = new RabbitMqSubscriber(getEnvRabbitMQExchangeNameTH2Connectivity(),
             this::processOutMessage,
             null,
             "fix_client_out");
-        inMsgSubscriber = new RabbitMqSubscriber("demo_exchange",
+        inMsgSubscriber = new RabbitMqSubscriber(getEnvRabbitMQExchangeNameTH2Connectivity(),
             this::processInMessage,
             null,
             "fix_client_in");
-        String host = defaultIfNull(getenv(ENV_RABBIT_QM_HOST), ConnectionFactory.DEFAULT_HOST);
-        String vHost = defaultIfNull(getenv(ENV_RABBIT_QM_VHOST), ConnectionFactory.DEFAULT_VHOST);
-        int port = defaultIfNull(toInt(getenv(ENV_RABBIT_QM_PORT)), ConnectionFactory.DEFAULT_AMQP_PORT);
-        String username = defaultIfNull(getenv(ENV_RABBIT_QM_USER), ConnectionFactory.DEFAULT_USER);
-        String password = defaultIfNull(getenv(ENV_RABBIT_QM_PASS), ConnectionFactory.DEFAULT_PASS);
-        outMsgSubscriber.startListening(host, vHost, port, username, password);
-        inMsgSubscriber.startListening(host, vHost, port, username, password);
+        outMsgSubscriber.startListening(rabbitMQ.getHost(), rabbitMQ.getVirtualHost(), rabbitMQ.getPort(), rabbitMQ.getUsername(), rabbitMQ.getPassword());
+        inMsgSubscriber.startListening(rabbitMQ.getHost(), rabbitMQ.getVirtualHost(), rabbitMQ.getPort(), rabbitMQ.getUsername(), rabbitMQ.getPassword());
     }
 
     public void start() throws InterruptedException {
@@ -154,9 +152,22 @@ public class DemoMessageStore {
     }
 
     public static void main(String[] args) throws TimeoutException, IOException, CradleStorageException, InterruptedException {
-        DemoMessageStore messageStore = new DemoMessageStore();
-        messageStore.init();
-        messageStore.start();
-        Runtime.getRuntime().addShutdownHook(new Thread(messageStore::dispose));
+        try {
+            Configuration configuration = readConfiguration(args);
+            DemoMessageStore messageStore = new DemoMessageStore(configuration);
+            messageStore.init();
+            messageStore.start();
+            Runtime.getRuntime().addShutdownHook(new Thread(messageStore::dispose));
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+    }
+
+    private static Configuration readConfiguration(String[] args) {
+        if (args.length > 0) {
+            return safeLoad(Configuration::load, Configuration::new, args[0]);
+        }
+        return new Configuration();
     }
 }

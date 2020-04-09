@@ -1,6 +1,0 @@
-[submodule "cradle"]
-	path = cradle
-	url = https://gitlab.exactpro.com/vivarium/cradle.git
-[submodule "EvolutionDemo"]
-	path = EvolutionDemo
-	url = ssh://serafim.gerasimov@gerrit.exp.exactpro.com:5214/Evolution-demo

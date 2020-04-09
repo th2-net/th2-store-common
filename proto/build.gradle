@@ -3,16 +3,16 @@ apply plugin: 'java'
 apply plugin: 'java-library'
 
 buildscript {
-  repositories {
-    mavenCentral()
-  }
-  dependencies {
-    classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.4'
-  }
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.4'
+    }
 }
 
 ext {
-  vertxGrpcVersion = '1.25.0'
+    vertxGrpcVersion = '1.25.0'
 }
 
 group 'com.exactpro.evolution.eventstore'
@@ -30,28 +30,28 @@ dependencies {
 }
 
 protobuf {
-  protoc {
-    artifact = 'com.google.protobuf:protoc:3.2.0'
-  }
-  plugins {
-    grpc {
-      artifact = "io.vertx:protoc-gen-grpc-java:${vertxGrpcVersion}"
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.2.0'
     }
-  }
-  generateProtoTasks.generatedFilesBaseDir = 'src/gen'
-  generateProtoTasks {
-    all()*.plugins {
-      grpc
+    plugins {
+        grpc {
+            artifact = "io.vertx:protoc-gen-grpc-java:${vertxGrpcVersion}"
+        }
     }
-  }
+    generateProtoTasks.generatedFilesBaseDir = "${projectDir}/src/gen"
+    generateProtoTasks {
+        all()*.plugins {
+            grpc
+        }
+    }
 }
 
 sourceSets {
-  main {
+    main {
 
-      java {
-          srcDirs 'src/main/java', 'src/gen/main/java', 'src/gen/main/grpc'
-      }
-  }
+        java {
+            srcDirs 'src/main/java', 'src/gen/main/java', 'src/gen/main/grpc'
+        }
+    }
 }
 compileJava.dependsOn.add('generateProto')

@@ -11,48 +11,130 @@
 package com.exactpro.evolution.common;
 
 import com.exactpro.cradle.cassandra.connection.CassandraConnectionSettings;
+import com.exactpro.evolution.configuration.Configuration;
+import com.exactpro.evolution.configuration.RabbitMQConfiguration;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.util.Properties;
 
-public class CassandraConfig
-{
-  private CassandraConnectionSettings connectionSettings;
-	private String instanceName;
+import static java.lang.System.getenv;
+import static org.apache.commons.lang3.ObjectUtils.defaultIfNull;
+import static org.apache.commons.lang3.math.NumberUtils.toInt;
 
-  public CassandraConnectionSettings getConnectionSettings() {
-    return connectionSettings;
-  }
+public class CassandraConfig {
 
-  public void setConnectionSettings(CassandraConnectionSettings connectionSettings) {
-    this.connectionSettings = connectionSettings;
-  }
+    public static final String ENV_CASSANDRA_DATA_CENTER = "CASSANDRA_DATA_CENTER";
+    public static final String DEFAULT_CASSANDRA_DATA_CENTER = "kos";
 
-  public String getInstanceName() {
-    return instanceName;
-  }
+    public static String getEnvCassandraDataCenter() {
+        return defaultIfNull(getenv(ENV_CASSANDRA_DATA_CENTER), DEFAULT_CASSANDRA_DATA_CENTER);
+    }
 
-  public void setInstanceName(String instanceName) {
-    this.instanceName = instanceName;
-  }
+    public static final String ENV_CASSANDRA_HOST = "CASSANDRA_HOST";
+    public static final String DEFAULT_CASSANDRA_HOST = "cassandra";
 
-  public static CassandraConfig loadFrom(File config) throws IOException {
-    Properties props = new Properties();
-    props.load(new FileInputStream(config));
-    CassandraConfig result = new CassandraConfig();
-    CassandraConnectionSettings settings = new CassandraConnectionSettings(
-      props.getProperty("datacenter", ""),
-      props.getProperty("host", ""),
-      Integer.parseInt(props.getProperty("port", "-1")),
-      props.getProperty("keyspace")
-    );
-    settings.setUsername(props.getProperty("username", ""));
-    settings.setPassword(props.getProperty("password", ""));
-    result.setInstanceName(props.getProperty("instance", "Cradle feeder "+ InetAddress.getLocalHost().getHostName()));
-    result.setConnectionSettings(settings);
-    return result;
-  }
+    public static String getEnvCassandraHost() {
+        return defaultIfNull(getenv(ENV_CASSANDRA_HOST), DEFAULT_CASSANDRA_HOST);
+    }
+
+    public static final String ENV_CASSANDRA_PORT = "CASSANDRA_PORT";
+    public static final int DEFAULT_CASSANDRA_PORT = 9042;
+
+    public static int getEnvCassandraPort() {
+        return toInt(getenv(ENV_CASSANDRA_PORT), DEFAULT_CASSANDRA_PORT);
+    }
+
+    public static final String ENV_CASSANDRA_KEYSPACE = "CASSANDRA_KEYSPACE";
+    public static final String DEFAULT_CASSANDRA_KEYSPACE = "demo";
+
+    public static String getEnvCassandraKeyspace() {
+        return defaultIfNull(getenv(ENV_CASSANDRA_KEYSPACE), DEFAULT_CASSANDRA_KEYSPACE);
+    }
+
+    public static final String ENV_CASSANDRA_USERNAME = "CASSANDRA_USERNAME";
+    public static final String DEFAULT_CASSANDRA_USERNAME = "guest";
+
+    public static String getEnvCassandraUsername() {
+        return defaultIfNull(getenv(ENV_CASSANDRA_USERNAME), DEFAULT_CASSANDRA_USERNAME);
+    }
+
+    public static final String ENV_CASSANDRA_PASSWORD = "CASSANDRA_PASSWORD";
+    public static final String DEFAULT_CASSANDRA_PASSWORD = "guest";
+
+    public static String getEnvCassandraPassword() {
+        return defaultIfNull(getenv(ENV_CASSANDRA_PASSWORD), DEFAULT_CASSANDRA_PASSWORD);
+    }
+
+    @JsonIgnore
+    private final CassandraConnectionSettings cassandraConnectionSettings = new CassandraConnectionSettings();
+
+    public CassandraConfig() {
+        cassandraConnectionSettings.setLocalDataCenter(getEnvCassandraDataCenter());
+        cassandraConnectionSettings.setHost(getEnvCassandraHost());
+        cassandraConnectionSettings.setPort(getEnvCassandraPort());
+        cassandraConnectionSettings.setKeyspace(getEnvCassandraKeyspace());
+        cassandraConnectionSettings.setUsername(getEnvCassandraUsername());
+        cassandraConnectionSettings.setPassword(getEnvCassandraPassword());
+    }
+
+    public static CassandraConfig load(InputStream inputStream) throws IOException {
+        return Configuration.YAML_READER.readValue(inputStream, CassandraConfig.class);
+    }
+
+    public String getDataCenter() {
+        return cassandraConnectionSettings.getLocalDataCenter();
+    }
+
+    public void setDataCenter(String cassandraDataCenter) {
+        this.cassandraConnectionSettings.setLocalDataCenter(cassandraDataCenter);
+    }
+
+    public String getHost() {
+        return cassandraConnectionSettings.getHost();
+    }
+
+    public void setHost(String cassandraHost) {
+        this.cassandraConnectionSettings.setHost(cassandraHost);
+    }
+
+    public int getPort() {
+        return cassandraConnectionSettings.getPort();
+    }
+
+    public void setPort(int cassandraPort) {
+        this.cassandraConnectionSettings.setPort(cassandraPort);
+    }
+
+    public String getKeyspace() {
+        return cassandraConnectionSettings.getKeyspace();
+    }
+
+    public void setKeyspace(String cassandraKeyspace) {
+        this.cassandraConnectionSettings.setKeyspace(cassandraKeyspace);
+    }
+
+    public String getUsername() {
+        return cassandraConnectionSettings.getUsername();
+    }
+
+    public void setUsername(String cassandraUsername) {
+        this.cassandraConnectionSettings.setUsername(cassandraUsername);
+    }
+
+    public String getPassword() {
+        return cassandraConnectionSettings.getPassword();
+    }
+
+    public void setPassword(String cassandraPassword) {
+        this.cassandraConnectionSettings.setPassword(cassandraPassword);
+    }
+
+    public CassandraConnectionSettings getConnectionSettings() {
+        return cassandraConnectionSettings;
+    }
 }

@@ -11,6 +11,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.AbstractVerticle;
 import io.vertx.reactivex.core.buffer.Buffer;
 
+import static com.exactpro.evolution.messagestore.Configuration.getEnvCradleInstanceName;
+
 public class MessageStoreVerticle extends AbstractVerticle {
   private static final String CONFIG_FILE_PATH = "MessageStoreConfig.json";
 
@@ -68,7 +70,7 @@ public class MessageStoreVerticle extends AbstractVerticle {
     ).flatMap(manager ->
         vertx.<Void>rxExecuteBlocking(
           AsyncHelper.createHandler(() ->
-            manager.init(config.getCassandraConfig().getInstanceName())
+            manager.init(getEnvCradleInstanceName())
           )
         ).ignoreElement()
       .toSingleDefault(manager)
