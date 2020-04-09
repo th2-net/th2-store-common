@@ -11,7 +11,7 @@ ext {
 }
 
 group = 'com.exactpro.evolution.eventstore'
-version = '1.0.0-SNAPSHOT'
+version = "${version_major}.${version_minor}.${version_maintenance}"
 
 repositories {
     maven {
