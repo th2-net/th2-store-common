@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'application'
     id 'com.github.johnrengelman.shadow' version '5.0.0'
+    id 'com.palantir.docker' version '0.25.0'
 }
 
 ext {
@@ -26,7 +27,23 @@ repositories {
 }
 
 application {
-    mainClassName = 'io.vertx.core.Launcher'
+    mainClassName = 'com.exactpro.evolution.messagestore.DemoMessageStore'
+    //mainClassName = 'io.vertx.core.Launcher' //TODO: Reuse in separated event storage
+}
+
+distTar {
+    archiveName "${archivesBaseName}.tar"
+}
+
+dockerPrepare {
+    dependsOn distTar
+}
+
+docker {
+    name "${docker_image_repository}/${docke_image_name}:${version}"
+    tag 'th2-version', "${docke_image_name}:${version}"
+    tag 'th2-latest', "${docke_image_name}:latest"
+    copySpec.from(tarTree("$buildDir/distributions/${archivesBaseName}.tar"))
 }
 
 sourceCompatibility = '1.8'

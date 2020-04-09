@@ -20,5 +20,15 @@ pipeline {
                 """
             }
         }
+        stage('Publish') {
+            steps {
+                // publish via docker cli image to Nexus
+                sh """
+                    docker login -u ${NEXUS_USR} -p ${NEXUS_PSW} ${NEXUS_URL}
+                    ./gradlew dockerPush ${GRADLE_SWITCHES}
+                    docker logout ${NEXUS_URL}
+                """ // TODO: Exec from root repository
+            }
+        }
     }
 }
