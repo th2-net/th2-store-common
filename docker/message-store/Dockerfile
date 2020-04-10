@@ -6,7 +6,12 @@ ENV CRADLE_INSTANCE_NAME=instance1 \
     CASSANDRA_KEYSPACE=demo \
     CASSANDRA_USERNAME=guest \
     CASSANDRA_PASSWORD=guest \
-    GRPC_PORT=9095
+    RABBITMQ_HOST=rabbitmq \
+    RABBITMQ_PORT=5672 \
+    RABBITMQ_USER="" \
+    RABBITMQ_PASS="" \
+    RABBITMQ_VHOST=th2 \
+    RABBITMQ_EXCHANGE_NAME_TH2_CONNECTIVITY=""
 WORKDIR /home
 COPY ./ .
-ENTRYPOINT ["/home/event-store/bin/event-store", "/home/event-store/etc/config.yml"]
+ENTRYPOINT ["/home/message-store/bin/message-store", "/home/EventStore/etc/config.yml"]

@@ -1,4 +1,4 @@
-#port: 9095
+#port: 8080
 #cradleInstanceName:
 #cassandraConfig
 #    dataCenter:

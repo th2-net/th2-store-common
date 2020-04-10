@@ -1,18 +1,3 @@
-apply plugin: 'java'
-
-group 'com.exactpro.evolution.eventstore'
-version '1.0.0-SNAPSHOT'
-
-sourceCompatibility = 1.8
-
-repositories {
-    mavenCentral()
-    maven {
-        name 'Artifactory'
-        url 'http://artifactory5.exp.exactpro.com/artifactory/libs-snapshot'
-    }
-}
-
 dependencies {
     compile "com.exactpro.cradle:cradle-cassandra:1.0-SNAPSHOT"
     compile "com.exactpro.cradle:cradle-core:1.0-SNAPSHOT"

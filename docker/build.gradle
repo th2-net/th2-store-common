@@ -1,0 +1,24 @@
+plugins {
+    id 'com.palantir.docker' version '0.25.0' apply false
+}
+
+subprojects {
+    apply plugin: 'com.palantir.docker'
+    apply plugin: 'application'
+
+    distTar {
+        archiveName "${archivesBaseName}.tar"
+    }
+
+    dockerPrepare {
+        dependsOn distTar
+    }
+
+    docker {
+        name "${docker_image_repository}/${docke_image_name}:${version}"
+        tag 'local-version', "${docke_image_name}:${version}"
+        tag 'local-latest', "${docke_image_name}:latest"
+        tag 'remote-latest',  "${docker_image_repository}/${docke_image_name}:latest"
+        copySpec.from(tarTree("$buildDir/distributions/${archivesBaseName}.tar"))
+    }
+}
