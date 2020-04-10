@@ -1,3 +1,5 @@
 rootProject.name = 'EventStore'
 include 'proto'
+include 'common'
+include 'event-store'
 

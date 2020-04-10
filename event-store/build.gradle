@@ -1,0 +1,49 @@
+apply plugin: 'java'
+apply plugin: 'java-library'
+
+apply plugin: 'application'
+apply plugin: 'com.palantir.docker'
+
+ext {
+    vertxGrpcVersion = '1.25.0'
+}
+
+group 'com.exactpro.evolution.eventstore'
+version '1.0.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    maven {
+        name 'Artifactory'
+        url 'http://artifactory5.exp.exactpro.com/artifactory/libs-snapshot'
+    }
+}
+
+dependencies {
+    implementation project(":common")
+    implementation project(":proto")
+    api "io.vertx:vertx-grpc:${rootProject.vertxVersion}"
+    implementation "io.vertx:vertx-rx-java2:$vertxVersion"
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+application {
+    mainClassName 'com.exactpro.evolution.eventstore.EventStoreMain'
+}
+
+distTar {
+    archiveName "${archivesBaseName}.tar"
+}
+
+dockerPrepare {
+    dependsOn distTar
+}
+
+docker {
+    name "${docker_image_repository}/${docke_image_name}:${version}"
+    tag 'th2-version', "${docke_image_name}:${version}"
+    tag 'th2-latest', "${docke_image_name}:latest"
+    copySpec.from(tarTree("$buildDir/distributions/${archivesBaseName}.tar"))
+}

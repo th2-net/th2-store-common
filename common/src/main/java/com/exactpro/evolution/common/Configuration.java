@@ -13,16 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-package com.exactpro.evolution.messagestore;
+package com.exactpro.evolution.common;
 
-import com.exactpro.evolution.common.CassandraConfig;
 import com.exactpro.evolution.configuration.RabbitMQConfiguration;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Map;
 
+import static com.exactpro.evolution.ConfigurationUtils.safeLoad;
 import static java.lang.System.getenv;
 import static org.apache.commons.lang3.ObjectUtils.defaultIfNull;
 
@@ -59,6 +57,13 @@ public class Configuration extends com.exactpro.evolution.configuration.Configur
 
     public static Configuration load(InputStream inputStream) throws IOException {
         return YAML_READER.readValue(inputStream, Configuration.class);
+    }
+
+    public static Configuration readConfiguration(String[] args) {
+        if (args.length > 0) {
+            return safeLoad(Configuration::load, Configuration::new, args[0]);
+        }
+        return new Configuration();
     }
 
     public static class Address {

@@ -1,0 +1,9 @@
+#port: 9095
+#cradleInstanceName:
+#cassandraConfig
+#    dataCenter:
+#    host:
+#    port:
+#    keyspace:
+#    username:
+#    password:

@@ -26,25 +26,21 @@ import com.exactpro.evolution.RabbitMqSubscriber;
 import com.exactpro.evolution.api.phase_1.Message;
 import com.exactpro.evolution.api.phase_1.SessionId;
 import com.exactpro.evolution.common.CassandraConfig;
+import com.exactpro.evolution.common.Configuration;
 import com.exactpro.evolution.common.TcpCradleStream;
 import com.exactpro.evolution.configuration.RabbitMQConfiguration;
-import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Delivery;
 import org.apache.mina.util.ConcurrentHashSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
-import static com.exactpro.evolution.ConfigurationUtils.safeLoad;
+import static com.exactpro.evolution.common.Configuration.readConfiguration;
 import static com.exactpro.evolution.configuration.Th2Configuration.getEnvRabbitMQExchangeNameTH2Connectivity;
-import static java.lang.System.getenv;
-import static org.apache.commons.lang3.ObjectUtils.defaultIfNull;
-import static org.apache.commons.lang3.math.NumberUtils.toInt;
 
 public class DemoMessageStore {
     private final Logger logger = LoggerFactory.getLogger(getClass().getName() + "@" + hashCode());
@@ -162,12 +158,5 @@ public class DemoMessageStore {
             e.printStackTrace();
             System.exit(-1);
         }
-    }
-
-    private static Configuration readConfiguration(String[] args) {
-        if (args.length > 0) {
-            return safeLoad(Configuration::load, Configuration::new, args[0]);
-        }
-        return new Configuration();
     }
 }

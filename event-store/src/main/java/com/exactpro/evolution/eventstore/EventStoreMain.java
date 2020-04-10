@@ -13,25 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-package com.exactpro.evolution;
+package com.exactpro.evolution.eventstore;
 
-import com.exactpro.evolution.messagestore.MessageStoreVerticle;
-import io.reactivex.Completable;
+import com.exactpro.evolution.common.Configuration;
 import io.vertx.core.Vertx;
-import io.vertx.reactivex.core.AbstractVerticle;
 
-public class MainVerticle extends AbstractVerticle {
-  enum Role {
-    MessageStore,
-    EventStore
-  }
+import static com.exactpro.evolution.common.Configuration.readConfiguration;
 
-  @Override
-  public Completable rxStart() {
-      return vertx.rxDeployVerticle(MessageStoreVerticle.class.getCanonicalName()).ignoreElement();
-  }
-  public static void main(String[] args) {
-    Vertx vertx = Vertx.vertx();
-    vertx.deployVerticle(MainVerticle.class.getName());
-  }
+public class EventStoreMain {
+
+    public static void main(String[] args) {
+        try {
+            Configuration configuration = readConfiguration(args);
+            Vertx vertx = Vertx.vertx();
+            EventStoreVerticle eventStoreVerticle = new EventStoreVerticle(configuration);
+            vertx.deployVerticle(eventStoreVerticle);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+    }
 }

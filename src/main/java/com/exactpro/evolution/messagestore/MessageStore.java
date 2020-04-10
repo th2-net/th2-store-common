@@ -11,7 +11,6 @@ import com.exactpro.evolution.common.utils.AsyncHelper;
 import io.reactivex.Completable;
 import io.reactivex.Single;
 import io.vertx.reactivex.core.Vertx;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.nio.ByteBuffer;
 import java.time.Instant;
@@ -35,7 +34,7 @@ public class MessageStore {
       case OUT_MSG:
         return handleMessage(message);
       default:
-        return Completable.error(new NotImplementedException());
+        return Completable.error(new UnsupportedOperationException());
     }
   }
 
