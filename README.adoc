@@ -23,15 +23,34 @@ To run your application:
 
 Configs stored in EventStore.cfg file.
 
-Example of config:
+Message store env variables:
 ```
-datacenter=datacenter1
-host=
-port=9042
-keyspace=
-instance=instance1
-username=
-password=
+RABBITMQ_PASS=some_pass
+RABBITMQ_HOST=some-host-name-or-ip
+RABBITMQ_PORT=7777
+RABBITMQ_VHOST=someVhost
+RABBITMQ_USER=some_user
+GRPC_PORT=7878
+CONNECTIVITY_TARGETS=some_connectivity_id->some-host:7878,some_connectivity_id2->some-host-2:7878
+CASSANDRA_DATA_CENTER=some_value
+CASSANDRA_HOST=some-cassandra-host
+CASSANDRA_PORT=9999
+CASSANDRA_KEYSPACE=some_keyspace
+CASSANDRA_USERNAME=some_user
+CASSANDRA_INSTANCE=some_instance
+CASSANDRA_PASSWORD=some_pass
+```
+
+Event store env variables:
+```
+GRPC_PORT=7878
+CASSANDRA_DATA_CENTER=some_value
+CASSANDRA_HOST=some-cassandra-host
+CASSANDRA_PORT=9999
+CASSANDRA_KEYSPACE=some_keyspace
+CASSANDRA_USERNAME=some_user
+CASSANDRA_INSTANCE=some_instance
+CASSANDRA_PASSWORD=some_pass
 ```
 
 == Help
