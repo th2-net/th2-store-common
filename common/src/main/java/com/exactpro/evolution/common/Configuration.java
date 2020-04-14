@@ -15,8 +15,6 @@
  ******************************************************************************/
 package com.exactpro.evolution.common;
 
-import com.exactpro.evolution.configuration.RabbitMQConfiguration;
-
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -24,7 +22,7 @@ import static com.exactpro.evolution.ConfigurationUtils.safeLoad;
 import static java.lang.System.getenv;
 import static org.apache.commons.lang3.ObjectUtils.defaultIfNull;
 
-public class Configuration extends com.exactpro.evolution.configuration.Configuration {
+public class Configuration extends com.exactpro.evolution.configuration.WithConnectivityConfiguration {
 
     public static final String ENV_CRADLE_INSTANCE_NAME = "CRADLE_INSTANCE_NAME";
     public static final String DEFAULT_CRADLE_INSTANCE_NAME = "instance1";
@@ -49,12 +47,6 @@ public class Configuration extends com.exactpro.evolution.configuration.Configur
         return cassandraConfig;
     }
 
-    private RabbitMQConfiguration rabbitMQ = new RabbitMQConfiguration();
-
-    public RabbitMQConfiguration getRabbitMQ() {
-        return rabbitMQ;
-    }
-
     public static Configuration load(InputStream inputStream) throws IOException {
         return YAML_READER.readValue(inputStream, Configuration.class);
     }
@@ -64,34 +56,5 @@ public class Configuration extends com.exactpro.evolution.configuration.Configur
             return safeLoad(Configuration::load, Configuration::new, args[0]);
         }
         return new Configuration();
-    }
-
-    public static class Address {
-        private String host;
-        private int port;
-
-        public Address() {
-        }
-
-        public Address(String host, int port) {
-            this.host = host;
-            this.port = port;
-        }
-
-        public String getHost() {
-            return host;
-        }
-
-        public void setHost(String host) {
-            this.host = host;
-        }
-
-        public int getPort() {
-            return port;
-        }
-
-        public void setPort(int port) {
-            this.port = port;
-        }
     }
 }

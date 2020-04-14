@@ -23,12 +23,17 @@ import com.exactpro.cradle.cassandra.CassandraCradleManager;
 import com.exactpro.cradle.cassandra.connection.CassandraConnection;
 import com.exactpro.cradle.utils.CradleStorageException;
 import com.exactpro.evolution.RabbitMqSubscriber;
+import com.exactpro.evolution.api.phase_1.ConnectivityGrpc;
+import com.exactpro.evolution.api.phase_1.ConnectivityGrpc.ConnectivityBlockingStub;
 import com.exactpro.evolution.api.phase_1.Message;
+import com.exactpro.evolution.api.phase_1.QueueInfo;
+import com.exactpro.evolution.api.phase_1.QueueRequest;
 import com.exactpro.evolution.api.phase_1.SessionId;
 import com.exactpro.evolution.common.CassandraConfig;
 import com.exactpro.evolution.common.Configuration;
 import com.exactpro.evolution.common.TcpCradleStream;
 import com.exactpro.evolution.configuration.RabbitMQConfiguration;
+import com.exactpro.evolution.configuration.WithConnectivityConfiguration.Address;
 import com.rabbitmq.client.Delivery;
 import org.apache.mina.util.ConcurrentHashSet;
 import org.slf4j.Logger;
@@ -36,69 +41,67 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 
 import static com.exactpro.evolution.common.Configuration.readConfiguration;
-import static com.exactpro.evolution.configuration.Th2Configuration.getEnvRabbitMQExchangeNameTH2Connectivity;
+import static io.grpc.ManagedChannelBuilder.forAddress;
 
 public class DemoMessageStore {
-    private final Logger logger = LoggerFactory.getLogger(getClass().getName() + "@" + hashCode());
+    private final static Logger LOGGER = LoggerFactory.getLogger(DemoMessageStore.class);
     private final Configuration configuration;
-
-    private RabbitMqSubscriber inMsgSubscriber;
-    private RabbitMqSubscriber outMsgSubscriber;
+    private final List<Subscriber> subscribers;
     private CradleManager cradleManager;
     private final Set<String> streamNames = new ConcurrentHashSet<>();
 
     public DemoMessageStore(Configuration configuration) {
         this.configuration = configuration;
+        this.subscribers = createSubscribers(configuration.getRabbitMQ(), configuration.getConnectivityServices());
     }
 
-    public void init() throws IOException, CradleStorageException, TimeoutException {
+    public void init() throws CradleStorageException {
         CassandraConfig cassandraConfig = configuration.getCassandraConfig();
-        RabbitMQConfiguration rabbitMQ = configuration.getRabbitMQ();
         cradleManager = new CassandraCradleManager(new CassandraConnection(cassandraConfig.getConnectionSettings()));
         cradleManager.init(configuration.getCradleInstanceName());
-        // FIXME get info about connectivities from variables or config and request QueueInfo
-        outMsgSubscriber = new RabbitMqSubscriber(getEnvRabbitMQExchangeNameTH2Connectivity(),
-            this::processOutMessage,
-            null,
-            "fix_client_out");
-        inMsgSubscriber = new RabbitMqSubscriber(getEnvRabbitMQExchangeNameTH2Connectivity(),
-            this::processInMessage,
-            null,
-            "fix_client_in");
-        outMsgSubscriber.startListening(rabbitMQ.getHost(), rabbitMQ.getVirtualHost(), rabbitMQ.getPort(), rabbitMQ.getUsername(), rabbitMQ.getPassword());
-        inMsgSubscriber.startListening(rabbitMQ.getHost(), rabbitMQ.getVirtualHost(), rabbitMQ.getPort(), rabbitMQ.getUsername(), rabbitMQ.getPassword());
     }
 
-    public void start() throws InterruptedException {
+    public void startAndBlock() throws InterruptedException {
+        subscribers.forEach(Subscriber::start);
         synchronized (this) {
             wait();
         }
     }
 
     public void dispose() {
-        try {
-            if (inMsgSubscriber != null) {
-                inMsgSubscriber.close();
-            }
-        } catch (IOException e) {
-            logger.error(e.getMessage(), e);
-        }
-        try {
-            if (outMsgSubscriber != null) {
-                outMsgSubscriber.close();
-            }
-        } catch (IOException e) {
-            logger.error(e.getMessage(), e);
-        }
+        subscribers.forEach(Subscriber::dispose);
         try {
             cradleManager.dispose();
         } catch (CradleStorageException e) {
-            logger.error(e.getMessage(), e);
+            LOGGER.error(e.getMessage(), e);
         }
+    }
+
+    private List<Subscriber> createSubscribers(RabbitMQConfiguration rabbitMQ,
+                                               Map<String, Address> connectivityServices) {
+        List<Subscriber> subscribers = new ArrayList<>();
+        for (Address address : connectivityServices.values()) {
+            subscribers.add(createSubscriber(rabbitMQ, address));
+        }
+        return Collections.unmodifiableList(subscribers);
+    }
+
+    private Subscriber createSubscriber(RabbitMQConfiguration rabbitMQ, Address address) {
+        ConnectivityBlockingStub connectivityBlockingStub = ConnectivityGrpc.newBlockingStub(
+                forAddress(address.getHost(), address.getPort()).usePlaintext().build());
+        QueueInfo queueInfo = connectivityBlockingStub.getQueueInfo(QueueRequest.newBuilder().build());
+        RabbitMqSubscriber outMsgSubscriber = new RabbitMqSubscriber(queueInfo.getExchangeName(),
+                this::processOutMessage, null, queueInfo.getOutMsgQueue());
+        RabbitMqSubscriber inMsgSubscriber = new RabbitMqSubscriber(queueInfo.getExchangeName(),
+                this::processInMessage, null, queueInfo.getInMsgQueue());
+        return new Subscriber(rabbitMQ, inMsgSubscriber, outMsgSubscriber);
     }
 
     private void processInMessage(String consumerTag, Delivery delivery) {
@@ -115,7 +118,7 @@ public class DemoMessageStore {
             String streamName = storeStreamIfNeeded(message);
             StoredMessage storedMessage = toStoredMessage(delivery.getBody(), message, streamName, direction);
             cradleManager.getStorage().storeMessage(storedMessage);
-            System.out.println("Message stored: " + storedMessage);
+            LOGGER.debug("Message stored: {}", storedMessage);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -138,21 +141,60 @@ public class DemoMessageStore {
         String sessionAlias = sessionId.getSessionAlias();
         if (streamNames.add(sessionAlias)) {
             TcpCradleStream tcpCradleStream = new TcpCradleStream(
-                sessionId.getSessionAlias(),
-                sessionId.getSourceAddress().getHost() + ":" + sessionId.getSourceAddress().getPort(),
-                sessionId.getTargetAddress().getHost() + ":" + sessionId.getTargetAddress().getPort()
+                    sessionId.getSessionAlias(),
+                    sessionId.getSourceAddress().getHost() + ":" + sessionId.getSourceAddress().getPort(),
+                    sessionId.getTargetAddress().getHost() + ":" + sessionId.getTargetAddress().getPort()
             );
             cradleManager.getStorage().storeStream(tcpCradleStream);
         }
         return sessionAlias;
     }
 
-    public static void main(String[] args) throws TimeoutException, IOException, CradleStorageException, InterruptedException {
+    private static class Subscriber {
+        private final RabbitMQConfiguration rabbitMQ;
+        private final RabbitMqSubscriber inSubscriber;
+        private final RabbitMqSubscriber outSubscriber;
+
+        private Subscriber(RabbitMQConfiguration rabbitMQ, RabbitMqSubscriber inSubscriber, RabbitMqSubscriber outSubscriber) {
+            this.rabbitMQ = rabbitMQ;
+            this.inSubscriber = inSubscriber;
+            this.outSubscriber = outSubscriber;
+        }
+
+        private void start() {
+            subscribe(inSubscriber);
+            subscribe(outSubscriber);
+        }
+
+        private void dispose() {
+            dispose(inSubscriber);
+            dispose(outSubscriber);
+        }
+
+        private void dispose(RabbitMqSubscriber subscriber) {
+            try {
+                subscriber.close();
+            } catch (Exception e) {
+                LOGGER.error("Could not dispose the mq subscriber", e);
+            }
+        }
+
+        private void subscribe(RabbitMqSubscriber subscriber) {
+            try {
+                subscriber.startListening(rabbitMQ.getHost(), rabbitMQ.getVirtualHost(), rabbitMQ.getPort(),
+                        rabbitMQ.getUsername(), rabbitMQ.getPassword());
+            } catch (Exception e) {
+                LOGGER.error("Could not subscribe to queue", e);
+            }
+        }
+    }
+
+    public static void main(String[] args) {
         try {
             Configuration configuration = readConfiguration(args);
             DemoMessageStore messageStore = new DemoMessageStore(configuration);
             messageStore.init();
-            messageStore.start();
+            messageStore.startAndBlock();
             Runtime.getRuntime().addShutdownHook(new Thread(messageStore::dispose));
         } catch (Exception e) {
             e.printStackTrace();
