@@ -27,5 +27,10 @@ subprojects {
             name 'Artifactory'
             url 'http://artifactory5.exp.exactpro.com/artifactory/libs-snapshot'
         }
+
+        configurations.all {
+            resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+            resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
+        }
     }
 }
