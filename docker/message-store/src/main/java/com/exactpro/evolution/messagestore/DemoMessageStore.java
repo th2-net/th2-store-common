@@ -33,7 +33,7 @@ import com.exactpro.evolution.common.CassandraConfig;
 import com.exactpro.evolution.common.Configuration;
 import com.exactpro.evolution.common.TcpCradleStream;
 import com.exactpro.evolution.configuration.RabbitMQConfiguration;
-import com.exactpro.evolution.configuration.WithConnectivityConfiguration.Address;
+import com.exactpro.evolution.configuration.Th2Configuration.Address;
 import com.rabbitmq.client.Delivery;
 import org.apache.mina.util.ConcurrentHashSet;
 import org.slf4j.Logger;
@@ -59,7 +59,7 @@ public class DemoMessageStore {
 
     public DemoMessageStore(Configuration configuration) {
         this.configuration = configuration;
-        this.subscribers = createSubscribers(configuration.getRabbitMQ(), configuration.getConnectivityServices());
+        this.subscribers = createSubscribers(configuration.getRabbitMQ(), configuration.getTh2().getConnectivityAddresses());
     }
 
     public void init() throws CradleStorageException {

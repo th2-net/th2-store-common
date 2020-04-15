@@ -11,7 +11,8 @@ ENV CRADLE_INSTANCE_NAME=instance1 \
     RABBITMQ_USER="" \
     RABBITMQ_PASS="" \
     RABBITMQ_VHOST=th2 \
-    RABBITMQ_EXCHANGE_NAME_TH2_CONNECTIVITY=""
+    RABBITMQ_EXCHANGE_NAME_TH2_CONNECTIVITY="" \
+    TH2_CONNECTIVITY_ADDRESSES=""
 WORKDIR /home
 COPY ./ .
 ENTRYPOINT ["/home/message-store/bin/message-store", "/home/EventStore/etc/config.yml"]

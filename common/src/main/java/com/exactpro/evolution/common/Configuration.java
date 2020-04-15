@@ -15,6 +15,8 @@
  ******************************************************************************/
 package com.exactpro.evolution.common;
 
+import com.exactpro.evolution.configuration.MicroserviceConfiguration;
+
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -22,7 +24,7 @@ import static com.exactpro.evolution.ConfigurationUtils.safeLoad;
 import static java.lang.System.getenv;
 import static org.apache.commons.lang3.ObjectUtils.defaultIfNull;
 
-public class Configuration extends com.exactpro.evolution.configuration.WithConnectivityConfiguration {
+public class Configuration extends MicroserviceConfiguration {
 
     public static final String ENV_CRADLE_INSTANCE_NAME = "CRADLE_INSTANCE_NAME";
     public static final String DEFAULT_CRADLE_INSTANCE_NAME = "instance1";
