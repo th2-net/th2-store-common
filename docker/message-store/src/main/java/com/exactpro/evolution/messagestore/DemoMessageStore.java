@@ -23,7 +23,6 @@ import com.exactpro.cradle.cassandra.CassandraCradleManager;
 import com.exactpro.cradle.cassandra.connection.CassandraConnection;
 import com.exactpro.cradle.utils.CradleStorageException;
 import com.exactpro.evolution.RabbitMqSubscriber;
-import com.exactpro.evolution.api.phase_1.ConnectivityGrpc;
 import com.exactpro.evolution.api.phase_1.ConnectivityGrpc.ConnectivityBlockingStub;
 import com.exactpro.evolution.api.phase_1.Message;
 import com.exactpro.evolution.api.phase_1.QueueInfo;
@@ -35,7 +34,7 @@ import com.exactpro.evolution.common.TcpCradleStream;
 import com.exactpro.evolution.configuration.RabbitMQConfiguration;
 import com.exactpro.evolution.configuration.Th2Configuration.Address;
 import com.rabbitmq.client.Delivery;
-import org.apache.mina.util.ConcurrentHashSet;
+import io.grpc.ManagedChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,8 +44,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
+import static com.exactpro.evolution.api.phase_1.ConnectivityGrpc.newBlockingStub;
 import static com.exactpro.evolution.common.Configuration.readConfiguration;
 import static io.grpc.ManagedChannelBuilder.forAddress;
 
@@ -54,8 +55,8 @@ public class DemoMessageStore {
     private final static Logger LOGGER = LoggerFactory.getLogger(DemoMessageStore.class);
     private final Configuration configuration;
     private final List<Subscriber> subscribers;
+    private final Lock sessionNameLock = new ReentrantLock();
     private CradleManager cradleManager;
-    private final Set<String> streamNames = new ConcurrentHashSet<>();
 
     public DemoMessageStore(Configuration configuration) {
         this.configuration = configuration;
@@ -66,10 +67,12 @@ public class DemoMessageStore {
         CassandraConfig cassandraConfig = configuration.getCassandraConfig();
         cradleManager = new CassandraCradleManager(new CassandraConnection(cassandraConfig.getConnectionSettings()));
         cradleManager.init(configuration.getCradleInstanceName());
+        LOGGER.info("cradle init successfully with {} instance name", configuration.getCradleInstanceName() );
     }
 
     public void startAndBlock() throws InterruptedException {
         subscribers.forEach(Subscriber::start);
+        LOGGER.info("message store started");
         synchronized (this) {
             wait();
         }
@@ -88,20 +91,34 @@ public class DemoMessageStore {
                                                Map<String, Address> connectivityServices) {
         List<Subscriber> subscribers = new ArrayList<>();
         for (Address address : connectivityServices.values()) {
-            subscribers.add(createSubscriber(rabbitMQ, address));
+            Subscriber subscriber = createSubscriber(rabbitMQ, address);
+            if (subscriber != null) {
+                subscribers.add(subscriber);
+            }
         }
         return Collections.unmodifiableList(subscribers);
     }
 
     private Subscriber createSubscriber(RabbitMQConfiguration rabbitMQ, Address address) {
-        ConnectivityBlockingStub connectivityBlockingStub = ConnectivityGrpc.newBlockingStub(
-                forAddress(address.getHost(), address.getPort()).usePlaintext().build());
-        QueueInfo queueInfo = connectivityBlockingStub.getQueueInfo(QueueRequest.newBuilder().build());
-        RabbitMqSubscriber outMsgSubscriber = new RabbitMqSubscriber(queueInfo.getExchangeName(),
-                this::processOutMessage, null, queueInfo.getOutMsgQueue());
-        RabbitMqSubscriber inMsgSubscriber = new RabbitMqSubscriber(queueInfo.getExchangeName(),
-                this::processInMessage, null, queueInfo.getInMsgQueue());
-        return new Subscriber(rabbitMQ, inMsgSubscriber, outMsgSubscriber);
+        ManagedChannel channel = forAddress(address.getHost(), address.getPort()).usePlaintext().build();
+        try {
+            ConnectivityBlockingStub connectivityBlockingStub = newBlockingStub(channel);
+            QueueInfo queueInfo = connectivityBlockingStub.getQueueInfo(QueueRequest.newBuilder().build());
+            LOGGER.info("get QueueInfo for {}:{} {}", address.getHost(), address.getPort(), queueInfo);
+            RabbitMqSubscriber outMsgSubscriber = new RabbitMqSubscriber(queueInfo.getExchangeName(),
+                    this::processOutMessage, null, queueInfo.getOutMsgQueue());
+            RabbitMqSubscriber inMsgSubscriber = new RabbitMqSubscriber(queueInfo.getExchangeName(),
+                    this::processInMessage, null, queueInfo.getInMsgQueue());
+            return new Subscriber(rabbitMQ, inMsgSubscriber, outMsgSubscriber);
+        } catch (Exception e) {
+            LOGGER.error("Could not create subscriber for {}:{}", address.getHost(), address.getPort(), e);
+        }
+        finally {
+            if (channel != null) {
+                channel.shutdownNow();
+            }
+        }
+        return null;
     }
 
     private void processInMessage(String consumerTag, Delivery delivery) {
@@ -119,8 +136,8 @@ public class DemoMessageStore {
             StoredMessage storedMessage = toStoredMessage(delivery.getBody(), message, streamName, direction);
             cradleManager.getStorage().storeMessage(storedMessage);
             LOGGER.debug("Message stored: {}", storedMessage);
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            LOGGER.error("Could not store message", e);
         }
     }
 
@@ -139,13 +156,20 @@ public class DemoMessageStore {
     private String storeStreamIfNeeded(Message message) throws IOException {
         SessionId sessionId = message.getMetadata().getConnectivityId().getSessionId();
         String sessionAlias = sessionId.getSessionAlias();
-        if (streamNames.add(sessionAlias)) {
-            TcpCradleStream tcpCradleStream = new TcpCradleStream(
-                    sessionId.getSessionAlias(),
-                    sessionId.getSourceAddress().getHost() + ":" + sessionId.getSourceAddress().getPort(),
-                    sessionId.getTargetAddress().getHost() + ":" + sessionId.getTargetAddress().getPort()
-            );
-            cradleManager.getStorage().storeStream(tcpCradleStream);
+        sessionNameLock.lock();
+        try {
+            String streamId = cradleManager.getStorage().getStreamId(sessionAlias);
+            if (streamId == null) {
+                TcpCradleStream tcpCradleStream = new TcpCradleStream(
+                        sessionId.getSessionAlias(),
+                        sessionId.getSourceAddress().getHost() + ":" + sessionId.getSourceAddress().getPort(),
+                        sessionId.getTargetAddress().getHost() + ":" + sessionId.getTargetAddress().getPort()
+                );
+                cradleManager.getStorage().storeStream(tcpCradleStream);
+                LOGGER.info("Stored stream with '{}' name", sessionAlias);
+            }
+        } finally {
+            sessionNameLock.unlock();
         }
         return sessionAlias;
     }
@@ -197,7 +221,8 @@ public class DemoMessageStore {
             messageStore.startAndBlock();
             Runtime.getRuntime().addShutdownHook(new Thread(messageStore::dispose));
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage(), e);
+            LOGGER.error("Error occurred. Exit the program");
             System.exit(-1);
         }
     }
