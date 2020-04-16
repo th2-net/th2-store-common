@@ -11,82 +11,96 @@ import com.google.protobuf.StringValue;
 import io.reactivex.Single;
 import io.vertx.core.Promise;
 import io.vertx.reactivex.core.Vertx;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.stream.Collectors;
 
 
 public class ReportEventStoreService extends EventStoreServiceVertxImplBase {
-  private static final String STORAGE_LOCK_NAME = "CassandraStorageLock";
-  private CradleManager cradleManager;
-  private Vertx vertx;
+    private final Logger logger = LoggerFactory.getLogger(getClass().getName() + '@' + hashCode());
+    private static final String STORAGE_LOCK_NAME = "CassandraStorageLock";
+    private final CradleManager cradleManager;
+    private final Vertx vertx;
 
-  public ReportEventStoreService(CradleManager cradleManager, Vertx vertx) {
-    this.cradleManager = cradleManager;
-    this.vertx = vertx;
-  }
+    public ReportEventStoreService(CradleManager cradleManager, Vertx vertx) {
+        this.cradleManager = cradleManager;
+        this.vertx = vertx;
+    }
 
-  @Override
-  public void storeReport(StoreReportRequest request, Promise<Response> response) {
-    AsyncHelper.executeWithLock(vertx, STORAGE_LOCK_NAME, storeReport(request)
-      .doOnSuccess(id -> response.complete(Response.newBuilder().setId(StringValue.of(id)).build()))
-      .doOnError(e -> response.complete(Response.newBuilder().setError(StringValue.of(e.toString())).build()))
-      .ignoreElement()
-    ).subscribe();
-  }
+    @Override
+    public void storeReport(StoreReportRequest request, Promise<Response> response) {
+        AsyncHelper.executeWithLock(vertx, STORAGE_LOCK_NAME, storeReport(request)
+                .doOnSuccess(id -> response.complete(Response.newBuilder().setId(StringValue.of(id)).build()))
+                .doOnError(e -> {
+                    response.complete(Response.newBuilder().setError(StringValue.of(e.toString())).build());
+                    logger.error("store report error: {}", e.getMessage(), e);
+                })
+                .ignoreElement()
+        ).subscribe();
+    }
 
-  private Single<String> storeReport(StoreReportRequest request) {
-    return Single.just(request)
-      .map(r -> {
-        StoredReport report = new StoredReport();
-        report.setId(r.getReportId());
-        report.setName(r.getReportName());
-        report.setSuccess(r.getSuccess());
-        report.setTimestamp(TimeHelper.toInstant(r.getReportStartTimestamp()));
-        report.setContent(new byte[0]);
-        return report;
-      })
-      .flatMap(report -> vertx.rxExecuteBlocking(
-          AsyncHelper.createHandler(() -> cradleManager.getStorage().storeReport(report))
-        ).toSingle()
-      );
-  }
+    private Single<String> storeReport(StoreReportRequest request) {
+        return Single.just(request)
+                .map(r -> {
+                    StoredReport report = new StoredReport();
+                    report.setId(r.getReportId());
+                    report.setName(r.getReportName());
+                    report.setSuccess(r.getSuccess());
+                    report.setTimestamp(TimeHelper.toInstant(r.getReportStartTimestamp()));
+                    report.setContent(new byte[0]);
+                    return report;
+                })
+                .flatMap(report -> vertx.rxExecuteBlocking(
+                        AsyncHelper.createHandler(() -> {
+                            String id = cradleManager.getStorage().storeReport(report);
+                            logger.debug("stored id: {}, report: {}", id, report);
+                            return id;
+                        })
+                        ).toSingle()
+                );
+    }
 
-  @Override
-  public void storeEvent(StoreEventRequest request, Promise<Response> response) {
-    AsyncHelper.executeWithLock(vertx, STORAGE_LOCK_NAME, storeEvent(request)
-      .doOnSuccess(id -> response.complete(Response.newBuilder().setId(StringValue.of(id)).build()))
-      .doOnError(e -> response.complete(Response.newBuilder().setError(StringValue.of(e.toString())).build()))
-      .ignoreElement()
-    ).subscribe();
-  }
+    @Override
+    public void storeEvent(StoreEventRequest request, Promise<Response> response) {
+        AsyncHelper.executeWithLock(vertx, STORAGE_LOCK_NAME, storeEvent(request)
+                .doOnSuccess(id -> response.complete(Response.newBuilder().setId(StringValue.of(id)).build()))
+                .doOnError(e -> {
+                    response.complete(Response.newBuilder().setError(StringValue.of(e.toString())).build());
+                    logger.error("store event error: {}", e.getMessage(), e);
+                })
+                .ignoreElement()
+        ).subscribe();
+    }
 
-  private Single<String> storeEvent(StoreEventRequest request) {
-    return Single.just(request)
-      .map(r -> {
-        StoredTestEvent result = new StoredTestEvent();
-        result.setId(r.getEventId());
-        result.setName(r.getEventName());
-        result.setType(r.getEventType());
-        result.setParentId(r.hasParentEventId()? r.getParentEventId().getValue(): null);
-        result.setReportId(r.getReportId());
-        result.setStartTimestamp(r.hasEventStartTimestamp()? TimeHelper.toInstant(r.getEventStartTimestamp()): null);
-        result.setEndTimestamp(r.hasEventEndTimestamp()? TimeHelper.toInstant(r.getEventEndTimestamp()): null);
-        result.setSuccess(r.getSuccess());
-        result.setContent(r.getBody().toByteArray());
-        return result;
-      }).flatMap(event -> vertx.rxExecuteBlocking(
-          AsyncHelper.createHandler(() -> {
-              String eventId = cradleManager.getStorage().storeTestEvent(event);
-              if (request.getAttachedMessageIdsCount() != 0) {
-                  cradleManager.getStorage().storeTestEventMessagesLink(eventId,
-                      request.getAttachedMessageIdsList().stream()
-                          .map(StoredMessageId::new)
-                          .collect(Collectors.toSet())
-                  );
-              }
-              return eventId;
-          })
-        ).toSingle()
-      );
-  }
+    private Single<String> storeEvent(StoreEventRequest request) {
+        return Single.just(request)
+                .map(r -> {
+                    StoredTestEvent result = new StoredTestEvent();
+                    result.setId(r.getEventId());
+                    result.setName(r.getEventName());
+                    result.setType(r.getEventType());
+                    result.setParentId(r.hasParentEventId() ? r.getParentEventId().getValue() : null);
+                    result.setReportId(r.getReportId());
+                    result.setStartTimestamp(r.hasEventStartTimestamp() ? TimeHelper.toInstant(r.getEventStartTimestamp()) : null);
+                    result.setEndTimestamp(r.hasEventEndTimestamp() ? TimeHelper.toInstant(r.getEventEndTimestamp()) : null);
+                    result.setSuccess(r.getSuccess());
+                    result.setContent(r.getBody().toByteArray());
+                    return result;
+                }).flatMap(event -> vertx.rxExecuteBlocking(
+                        AsyncHelper.createHandler(() -> {
+                            String eventId = cradleManager.getStorage().storeTestEvent(event);
+                            logger.debug("event id: {}, event: {}", eventId, event);
+                            if (request.getAttachedMessageIdsCount() != 0) {
+                                cradleManager.getStorage().storeTestEventMessagesLink(eventId,
+                                        request.getAttachedMessageIdsList().stream()
+                                                .map(StoredMessageId::new)
+                                                .collect(Collectors.toSet())
+                                );
+                            }
+                            return eventId;
+                        })
+                        ).toSingle()
+                );
+    }
 }

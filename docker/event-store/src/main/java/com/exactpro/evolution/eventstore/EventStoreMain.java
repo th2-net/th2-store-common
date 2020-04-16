@@ -17,10 +17,14 @@ package com.exactpro.evolution.eventstore;
 
 import com.exactpro.evolution.common.Configuration;
 import io.vertx.core.Vertx;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.exactpro.evolution.common.Configuration.readConfiguration;
 
 public class EventStoreMain {
+
+    private final static Logger LOGGER = LoggerFactory.getLogger(EventStoreMain.class);
 
     public static void main(String[] args) {
         try {
@@ -28,8 +32,9 @@ public class EventStoreMain {
             Vertx vertx = Vertx.vertx();
             EventStoreVerticle eventStoreVerticle = new EventStoreVerticle(configuration);
             vertx.deployVerticle(eventStoreVerticle);
+            LOGGER.info("event store started on {} port", configuration.getPort());
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("fatal error: {}", e.getMessage(), e);
             System.exit(-1);
         }
     }

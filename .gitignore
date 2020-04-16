@@ -33,3 +33,5 @@ out
 #JMH files
 BenchmarkList
 CompilerHints
+
+*.log
