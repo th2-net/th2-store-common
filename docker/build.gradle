@@ -6,6 +6,10 @@ subprojects {
     apply plugin: 'com.palantir.docker'
     apply plugin: 'application'
 
+    ext {
+        dockerImageVersion  = "${version_major}.${version_minor}.${version_maintenance}.${version_build}"
+    }
+
     distTar {
         archiveName "${archivesBaseName}.tar"
     }
@@ -15,8 +19,8 @@ subprojects {
     }
 
     docker {
-        name "${docker_image_repository}/${docke_image_name}:${version}"
-        tag 'local-version', "${docke_image_name}:${version}"
+        name "${docker_image_repository}/${docke_image_name}:${dockerImageVersion}"
+        tag 'local-version', "${docke_image_name}:${dockerImageVersion}"
         tag 'local-latest', "${docke_image_name}:latest"
         tag 'remote-latest',  "${docker_image_repository}/${docke_image_name}:latest"
         copySpec.from(tarTree("$buildDir/distributions/${archivesBaseName}.tar"))
