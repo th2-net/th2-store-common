@@ -1,6 +1,6 @@
 dependencies {
-    compile "com.exactpro.cradle:cradle-cassandra:1.0-SNAPSHOT"
-    compile "com.exactpro.cradle:cradle-core:1.0-SNAPSHOT"
+    compile "com.exactpro.cradle:cradle-cassandra:1.2-SNAPSHOT"
+    compile "com.exactpro.cradle:cradle-core:1.2-SNAPSHOT"
     compile "com.exactpro.th2:grpc-api:0.1-SNAPSHOT"
     compile "com.exactpro.th2:th2-common:0.1-SNAPSHOT"
     implementation "io.vertx:vertx-rx-java2:$vertxVersion"
