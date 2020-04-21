@@ -17,45 +17,47 @@ package com.exactpro.evolution.messagestore;
 
 import com.exactpro.cradle.CradleManager;
 import com.exactpro.cradle.Direction;
-import com.exactpro.cradle.StoredMessage;
-import com.exactpro.cradle.StoredMessageId;
 import com.exactpro.cradle.cassandra.CassandraCradleManager;
 import com.exactpro.cradle.cassandra.connection.CassandraConnection;
+import com.exactpro.cradle.messages.StoredMessage;
+import com.exactpro.cradle.messages.StoredMessageBatch;
+import com.exactpro.cradle.messages.StoredMessageId;
 import com.exactpro.cradle.utils.CradleStorageException;
 import com.exactpro.evolution.RabbitMqSubscriber;
+import com.exactpro.evolution.api.phase_1.Batch;
 import com.exactpro.evolution.api.phase_1.ConnectivityGrpc.ConnectivityBlockingStub;
 import com.exactpro.evolution.api.phase_1.Message;
+import com.exactpro.evolution.api.phase_1.MessageId;
 import com.exactpro.evolution.api.phase_1.QueueInfo;
 import com.exactpro.evolution.api.phase_1.QueueRequest;
-import com.exactpro.evolution.api.phase_1.SessionId;
+import com.exactpro.evolution.api.phase_1.RawMessage;
 import com.exactpro.evolution.common.CassandraConfig;
 import com.exactpro.evolution.common.Configuration;
-import com.exactpro.evolution.common.TcpCradleStream;
 import com.exactpro.evolution.configuration.RabbitMQConfiguration;
 import com.exactpro.evolution.configuration.Th2Configuration.Address;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.rabbitmq.client.Delivery;
 import io.grpc.ManagedChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
+import static com.exactpro.cradle.messages.StoredMessageBatch.singleton;
 import static com.exactpro.evolution.api.phase_1.ConnectivityGrpc.newBlockingStub;
 import static com.exactpro.evolution.common.Configuration.readConfiguration;
+import static com.exactpro.evolution.common.utils.ProtoUtil.toBatchId;
+import static com.exactpro.evolution.common.utils.ProtoUtil.toStoredMessageId;
 import static io.grpc.ManagedChannelBuilder.forAddress;
 
 public class DemoMessageStore {
     private final static Logger LOGGER = LoggerFactory.getLogger(DemoMessageStore.class);
     private final Configuration configuration;
     private final List<Subscriber> subscribers;
-    private final Lock sessionNameLock = new ReentrantLock();
     private CradleManager cradleManager;
 
     public DemoMessageStore(Configuration configuration) {
@@ -106,10 +108,18 @@ public class DemoMessageStore {
             QueueInfo queueInfo = connectivityBlockingStub.getQueueInfo(QueueRequest.newBuilder().build());
             LOGGER.info("get QueueInfo for {}:{} {}", address.getHost(), address.getPort(), queueInfo);
             RabbitMqSubscriber outMsgSubscriber = new RabbitMqSubscriber(queueInfo.getExchangeName(),
-                    this::processOutMessage, null, queueInfo.getOutMsgQueue());
+                    (consumerTag, delivery) -> storeMessage(delivery, Direction.RECEIVED),
+                    null, queueInfo.getOutMsgQueue());
             RabbitMqSubscriber inMsgSubscriber = new RabbitMqSubscriber(queueInfo.getExchangeName(),
-                    this::processInMessage, null, queueInfo.getInMsgQueue());
-            return new Subscriber(rabbitMQ, inMsgSubscriber, outMsgSubscriber);
+                    (consumerTag, delivery) -> storeMessage(delivery, Direction.SENT),
+                    null, queueInfo.getInMsgQueue());
+            RabbitMqSubscriber outRawMsgSubscriber = new RabbitMqSubscriber(queueInfo.getExchangeName(),
+                    (consumerTag, delivery) -> storeMessageBatch(delivery, Direction.RECEIVED),
+                    null, queueInfo.getOutRawMsgQueue());
+            RabbitMqSubscriber inRawMsgSubscriber = new RabbitMqSubscriber(queueInfo.getExchangeName(),
+                    (consumerTag, delivery) -> storeMessageBatch(delivery, Direction.SENT),
+                    null, queueInfo.getInRawMsgQueue());
+            return new Subscriber(rabbitMQ, inMsgSubscriber, outMsgSubscriber, inRawMsgSubscriber, outRawMsgSubscriber);
         } catch (Exception e) {
             LOGGER.error("Could not create subscriber for {}:{}", address.getHost(), address.getPort(), e);
         }
@@ -121,78 +131,86 @@ public class DemoMessageStore {
         return null;
     }
 
-    private void processInMessage(String consumerTag, Delivery delivery) {
-        storeMessage(delivery, Direction.RECEIVED);
-    }
-
-    private void processOutMessage(String consumerTag, Delivery delivery) {
-        storeMessage(delivery, Direction.SENT);
-    }
-
     private void storeMessage(Delivery delivery, Direction direction) {
         try {
             Message message = Message.parseFrom(delivery.getBody());
-            String streamName = storeStreamIfNeeded(message);
-            StoredMessage storedMessage = toStoredMessage(delivery.getBody(), message, streamName, direction);
-            cradleManager.getStorage().storeMessage(storedMessage);
-            LOGGER.debug("Message stored: {}", storedMessage);
+            StoredMessageBatch storedMessageBatch = toStoredMessageBatch(delivery.getBody(),
+                    message.getMetadata().getConnectivityId().getConnectivityId(),
+                    message.getMetadata().getMessageId(), direction);
+            cradleManager.getStorage().storeMessageBatch(storedMessageBatch);
+            LOGGER.debug("Singleton Batch Message stored: {}", storedMessageBatch.getId().getId());
         } catch (Exception e) {
             LOGGER.error("Could not store message", e);
         }
     }
 
-    private StoredMessage toStoredMessage(byte[] body, Message message, String streamName, Direction direction) {
+    private void storeMessageBatch(Delivery delivery, Direction direction) {
+        try {
+            StoredMessageBatch storedMessageBatch = toStoreMessageBatch(delivery.getBody(), direction);
+            cradleManager.getStorage().storeMessageBatch(storedMessageBatch);
+            LOGGER.debug("Batch Message stored: {}:{}",
+                    storedMessageBatch.getId().getId(), storedMessageBatch.getMessageCount());
+        } catch (Exception e) {
+            LOGGER.error("Could not store message", e);
+        }
+    }
+
+    private StoredMessageBatch toStoreMessageBatch(byte[] protoBatchData, Direction direction)
+            throws CradleStorageException, InvalidProtocolBufferException {
+        Batch protoBatch = Batch.parseFrom(protoBatchData);
+        LOGGER.debug("Proto batch received: {}", protoBatch);
+        StoredMessageBatch storedMessageBatch = new StoredMessageBatch(toBatchId(protoBatch.getBatchId()));
+        for (RawMessage rawMessage : protoBatch.getMessageList()) {
+            storedMessageBatch.addMessage(createStoredMessage(rawMessage.getData().toByteArray(), direction,
+                    toStoredMessageId(rawMessage.getMessageId()), protoBatch.getConnectivityId().getConnectivityId()));
+        }
+        return storedMessageBatch;
+    }
+
+    private StoredMessage createStoredMessage(byte[] body, Direction direction, StoredMessageId messageId, String streamName) {
         StoredMessage storedMessage = new StoredMessage();
         storedMessage.setContent(body);
         storedMessage.setDirection(direction);
-        StoredMessageId storedMessageId = new StoredMessageId();
-        storedMessageId.setId(message.getMetadata().getMessageId());
-        storedMessage.setId(storedMessageId);
+        storedMessage.setId(messageId);
         storedMessage.setStreamName(streamName);
         storedMessage.setTimestamp(Instant.now());
         return storedMessage;
     }
 
-    private String storeStreamIfNeeded(Message message) throws IOException {
-        SessionId sessionId = message.getMetadata().getConnectivityId().getSessionId();
-        String sessionAlias = sessionId.getSessionAlias();
-        sessionNameLock.lock();
-        try {
-            String streamId = cradleManager.getStorage().getStreamId(sessionAlias);
-            if (streamId == null) {
-                TcpCradleStream tcpCradleStream = new TcpCradleStream(
-                        sessionId.getSessionAlias(),
-                        sessionId.getSourceAddress().getHost() + ":" + sessionId.getSourceAddress().getPort(),
-                        sessionId.getTargetAddress().getHost() + ":" + sessionId.getTargetAddress().getPort()
-                );
-                cradleManager.getStorage().storeStream(tcpCradleStream);
-                LOGGER.info("Stored stream with '{}' name", sessionAlias);
-            }
-        } finally {
-            sessionNameLock.unlock();
-        }
-        return sessionAlias;
+    private StoredMessageBatch toStoredMessageBatch(byte[] body, String streamName, MessageId messageId, Direction direction)
+            throws CradleStorageException {
+        return singleton(createStoredMessage(body, direction, toStoredMessageId(messageId), streamName));
     }
 
     private static class Subscriber {
         private final RabbitMQConfiguration rabbitMQ;
         private final RabbitMqSubscriber inSubscriber;
         private final RabbitMqSubscriber outSubscriber;
+        private final RabbitMqSubscriber inRawSubscriber;
+        private final RabbitMqSubscriber outRawSubscriber;
 
-        private Subscriber(RabbitMQConfiguration rabbitMQ, RabbitMqSubscriber inSubscriber, RabbitMqSubscriber outSubscriber) {
+        private Subscriber(RabbitMQConfiguration rabbitMQ, RabbitMqSubscriber inSubscriber,
+                           RabbitMqSubscriber outSubscriber, RabbitMqSubscriber inRawMsgSubscriber,
+                           RabbitMqSubscriber outRawMsgSubscriber) {
             this.rabbitMQ = rabbitMQ;
             this.inSubscriber = inSubscriber;
             this.outSubscriber = outSubscriber;
+            this.inRawSubscriber = inRawMsgSubscriber;
+            this.outRawSubscriber = outRawMsgSubscriber;
         }
 
         private void start() {
             subscribe(inSubscriber);
             subscribe(outSubscriber);
+            subscribe(inRawSubscriber);
+            subscribe(outRawSubscriber);
         }
 
         private void dispose() {
             dispose(inSubscriber);
             dispose(outSubscriber);
+            dispose(inRawSubscriber);
+            dispose(outRawSubscriber);
         }
 
         private void dispose(RabbitMqSubscriber subscriber) {
