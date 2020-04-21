@@ -36,7 +36,7 @@ pipeline {
             steps {
                 script {
                     def gradleProperties = readProperties  file: 'gradle.properties'
-                    def dockerImageVersion = "${gradleProperties['version_major']}.${gradleProperties['version_minor']}.${VERSION_MAINTENANCE}".trim()
+                    def dockerImageVersion = "${gradleProperties['version_major']}.${gradleProperties['version_minor']}.${VERSION_MAINTENANCE}.${BUILD_NUMBER}".trim()
 
                     def changeLogs = ""
                     try {
