@@ -1,6 +1,7 @@
 package com.exactpro.evolution.eventstore;
 
 import com.exactpro.cradle.CradleManager;
+import com.exactpro.cradle.CradleStorage;
 import io.grpc.ManagedChannel;
 import io.vertx.grpc.VertxChannelBuilder;
 import io.vertx.junit5.Checkpoint;
@@ -37,7 +38,7 @@ public class TestMainVerticle {
   @BeforeEach
   void deploy_verticle(Vertx vertx, VertxTestContext testContext) {
     CradleManagerMock manager = Mockito.spy(CradleManagerMock.class);
-    Mockito.when(manager.createStorage()).thenReturn(Mockito.spy(CradleStorageMock.class));
+    Mockito.when(manager.createStorage()).thenReturn(Mockito.mock(CradleStorage.class));
     testData = new ConcurrentHashMap<>();
     testData.put(CRADLE_MANAGER_MOCK_KEY, manager);
     ManagedChannel channel = VertxChannelBuilder
@@ -51,24 +52,13 @@ public class TestMainVerticle {
   }
 
   @Test
-  void storeReport(Vertx vertx, VertxTestContext testContext) {
-    EventStoreServiceGrpc.EventStoreServiceVertxStub stub = getServiceStub();
-    Checkpoint storageCalled = testContext.checkpoint();
-    CradleManager manager = getCradleManager();
-    AsyncResultSingle.<Response>toSingle(h -> stub.storeReport(StoreReportRequest.newBuilder().build(), h))
-      .ignoreElement()
-      .doOnComplete(() -> Mockito.verify(manager.getStorage()).storeReport(any()))
-      .doOnComplete(storageCalled::flag).subscribe();
-  }
-
-  @Test
   void storeEvent(Vertx vertx, VertxTestContext testContext) {
     EventStoreServiceGrpc.EventStoreServiceVertxStub stub = getServiceStub();
     Checkpoint storageCalled = testContext.checkpoint();
     CradleManager manager = getCradleManager();
     AsyncResultSingle.<Response>toSingle(h -> stub.storeEvent(StoreEventRequest.newBuilder().build(), h))
       .ignoreElement()
-      .doOnComplete(() -> Mockito.verify(manager.getStorage()).storeTestEvent(any()))
+      .doOnComplete(() -> Mockito.verify(manager.getStorage()).storeTestEventBatch(any()))
       .doOnComplete(storageCalled::flag).subscribe();
   }
 }
