@@ -4,7 +4,10 @@ pipeline {
         jdk 'openjdk-1.8u202'
     }
     environment {
-        VERSION_MAINTENANCE = "${sh( returnStdout: true, script: 'git rev-list --count HEAD')}" //TODO: Calculate revision from a specific tag instead of a root commit
+        VERSION_MAINTENANCE = """${sh(
+                                    returnStdout: true,
+                                    script: 'git rev-list --count HEAD'
+                                    ).trim()}""" //TODO: Calculate revision from a specific tag instead of a root commit
         NEXUS = credentials('docker-user_nexus.exp.exactpro.com_9000')
         NEXUS_URL = 'nexus.exp.exactpro.com:9000'
         GRADLE_SWITCHES = " --warning-mode all --stacktrace -Pversion_build=${BUILD_NUMBER} -Pversion_maintenance=${VERSION_MAINTENANCE}"
