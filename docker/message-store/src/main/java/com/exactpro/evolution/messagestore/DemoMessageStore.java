@@ -53,6 +53,7 @@ import static com.exactpro.evolution.common.Configuration.readConfiguration;
 import static com.exactpro.evolution.common.utils.ProtoUtil.toBatchId;
 import static com.exactpro.evolution.common.utils.ProtoUtil.toStoredMessageId;
 import static io.grpc.ManagedChannelBuilder.forAddress;
+import static javax.xml.bind.DatatypeConverter.printHexBinary;
 
 public class DemoMessageStore {
     private final static Logger LOGGER = LoggerFactory.getLogger(DemoMessageStore.class);
@@ -140,7 +141,9 @@ public class DemoMessageStore {
             cradleManager.getStorage().storeMessageBatch(storedMessageBatch);
             LOGGER.debug("Singleton Batch Message stored: {}", storedMessageBatch.getId().getId());
         } catch (Exception e) {
-            LOGGER.error("Could not store message", e);
+            LOGGER.error("'{}':'{}' could not store message.",
+                    delivery.getEnvelope().getExchange(), delivery.getEnvelope().getRoutingKey(), e);
+            LOGGER.error("message body: {}", printHexBinary(delivery.getBody()));
         }
     }
 
@@ -151,7 +154,9 @@ public class DemoMessageStore {
             LOGGER.debug("Batch Message stored: {}:{}",
                     storedMessageBatch.getId().getId(), storedMessageBatch.getMessageCount());
         } catch (Exception e) {
-            LOGGER.error("Could not store message", e);
+            LOGGER.error("'{}':'{}' could not store message batch.",
+                    delivery.getEnvelope().getExchange(), delivery.getEnvelope().getRoutingKey(), e);
+            LOGGER.error("batch body: {}", printHexBinary(delivery.getBody()));
         }
     }
 
