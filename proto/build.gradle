@@ -11,7 +11,7 @@ buildscript {
 
 dependencies {
     api "io.vertx:vertx-grpc:${vertxVersion}"
-    compile "com.exactpro.th2:grpc-api:0.1-SNAPSHOT"
+    compile "com.exactpro.th2:grpc-api:1.0-SNAPSHOT"
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
