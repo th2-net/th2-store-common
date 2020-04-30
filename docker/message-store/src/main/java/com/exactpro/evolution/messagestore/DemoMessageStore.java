@@ -36,8 +36,11 @@ import com.exactpro.evolution.common.Configuration;
 import com.exactpro.evolution.configuration.RabbitMQConfiguration;
 import com.exactpro.evolution.configuration.Th2Configuration.Address;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Delivery;
 import io.grpc.ManagedChannel;
+
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,18 +111,18 @@ public class DemoMessageStore {
             ConnectivityBlockingStub connectivityBlockingStub = newBlockingStub(channel);
             QueueInfo queueInfo = connectivityBlockingStub.getQueueInfo(QueueRequest.newBuilder().build());
             LOGGER.info("get QueueInfo for {}:{} {}", address.getHost(), address.getPort(), queueInfo);
-            RabbitMqSubscriber outMsgSubscriber = new RabbitMqSubscriber(queueInfo.getExchangeName(),
-                    (consumerTag, delivery) -> storeMessage(delivery, Direction.RECEIVED),
-                    null, queueInfo.getOutMsgQueue());
-            RabbitMqSubscriber inMsgSubscriber = new RabbitMqSubscriber(queueInfo.getExchangeName(),
-                    (consumerTag, delivery) -> storeMessage(delivery, Direction.SENT),
-                    null, queueInfo.getInMsgQueue());
-            RabbitMqSubscriber outRawMsgSubscriber = new RabbitMqSubscriber(queueInfo.getExchangeName(),
-                    (consumerTag, delivery) -> storeMessageBatch(delivery, Direction.RECEIVED),
-                    null, queueInfo.getOutRawMsgQueue());
-            RabbitMqSubscriber inRawMsgSubscriber = new RabbitMqSubscriber(queueInfo.getExchangeName(),
-                    (consumerTag, delivery) -> storeMessageBatch(delivery, Direction.SENT),
-                    null, queueInfo.getInRawMsgQueue());
+            RabbitMqSubscriber outMsgSubscriber = createRabbitMqSubscriber(queueInfo.getOutMsgQueue(),
+                    queueInfo.getExchangeName(),
+                    (consumerTag, delivery) -> storeMessage(delivery, Direction.RECEIVED));
+            RabbitMqSubscriber inMsgSubscriber = createRabbitMqSubscriber(queueInfo.getInMsgQueue(),
+                    queueInfo.getExchangeName(),
+                    (consumerTag, delivery) -> storeMessage(delivery, Direction.SENT));
+            RabbitMqSubscriber outRawMsgSubscriber = createRabbitMqSubscriber(queueInfo.getOutRawMsgQueue(),
+                    queueInfo.getExchangeName(),
+                    (consumerTag, delivery) -> storeMessageBatch(delivery, Direction.RECEIVED));
+            RabbitMqSubscriber inRawMsgSubscriber = createRabbitMqSubscriber(queueInfo.getInRawMsgQueue(),
+                    queueInfo.getExchangeName(),
+                    (consumerTag, delivery) -> storeMessageBatch(delivery, Direction.SENT));
             return new Subscriber(rabbitMQ, inMsgSubscriber, outMsgSubscriber, inRawMsgSubscriber, outRawMsgSubscriber);
         } catch (Exception e) {
             LOGGER.error("Could not create subscriber for {}:{}", address.getHost(), address.getPort(), e);
@@ -187,6 +190,10 @@ public class DemoMessageStore {
         return singleton(createStoredMessage(body, direction, toStoredMessageId(messageId), streamName));
     }
 
+    private RabbitMqSubscriber createRabbitMqSubscriber(String queueName, String exchangeName, DeliverCallback deliverCallback) {
+        return StringUtils.isEmpty(queueName) ? null : new RabbitMqSubscriber(exchangeName, deliverCallback, null, queueName);
+    }
+
     private static class Subscriber {
         private final RabbitMQConfiguration rabbitMQ;
         private final RabbitMqSubscriber inSubscriber;
@@ -219,6 +226,9 @@ public class DemoMessageStore {
         }
 
         private void dispose(RabbitMqSubscriber subscriber) {
+            if (subscriber == null) {
+                return;
+            }
             try {
                 subscriber.close();
             } catch (Exception e) {
@@ -227,6 +237,9 @@ public class DemoMessageStore {
         }
 
         private void subscribe(RabbitMqSubscriber subscriber) {
+            if (subscriber == null) {
+                return;
+            }
             try {
                 subscriber.startListening(rabbitMQ.getHost(), rabbitMQ.getVirtualHost(), rabbitMQ.getPort(),
                         rabbitMQ.getUsername(), rabbitMQ.getPassword());
