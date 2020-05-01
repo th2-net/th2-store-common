@@ -1,4 +1,4 @@
-package com.exactpro.evolution.eventstore;
+package com.exactpro.th2.eventstore;
 
 import com.exactpro.cradle.CradleManager;
 import com.exactpro.cradle.CradleStorage;

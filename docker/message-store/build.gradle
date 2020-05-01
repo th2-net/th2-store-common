@@ -1,7 +1,7 @@
 apply plugin: 'com.github.johnrengelman.shadow'
 
 application {
-    mainClassName = 'com.exactpro.evolution.messagestore.DemoMessageStore'
+    mainClassName = 'com.exactpro.th2.messagestore.DemoMessageStore'
     //mainClassName = 'io.vertx.core.Launcher' //TODO: Reuse in separated event storage
 }
 

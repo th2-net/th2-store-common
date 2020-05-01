@@ -1,4 +1,4 @@
-package com.exactpro.evolution.common.utils;
+package com.exactpro.th2.store.common.utils;
 
 import io.reactivex.Completable;
 import io.reactivex.Single;

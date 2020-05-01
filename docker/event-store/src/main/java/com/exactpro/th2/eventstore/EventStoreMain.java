@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-package com.exactpro.evolution.eventstore;
+package com.exactpro.th2.eventstore;
 
-import com.exactpro.evolution.common.Configuration;
+import com.exactpro.th2.store.common.Configuration;
 import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.exactpro.evolution.common.Configuration.readConfiguration;
+import static com.exactpro.th2.store.common.Configuration.readConfiguration;
 
 public class EventStoreMain {
 

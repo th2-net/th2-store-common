@@ -1,4 +1,4 @@
-package com.exactpro.evolution.messagestore;
+package com.exactpro.th2.messagestore;
 
 public class QueueInfo {
   private String exchangeName;

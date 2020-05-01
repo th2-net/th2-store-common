@@ -1,11 +1,11 @@
-package com.exactpro.evolution.eventstore;
+package com.exactpro.th2.eventstore;
 
 import com.exactpro.cradle.CradleManager;
 import com.exactpro.cradle.cassandra.CassandraCradleManager;
 import com.exactpro.cradle.cassandra.connection.CassandraConnection;
 import com.exactpro.cradle.utils.CradleStorageException;
-import com.exactpro.evolution.common.Configuration;
-import com.exactpro.evolution.common.utils.AsyncHelper;
+import com.exactpro.th2.store.common.Configuration;
+import com.exactpro.th2.store.common.utils.AsyncHelper;
 import io.reactivex.Completable;
 import io.vertx.grpc.VertxServerBuilder;
 import io.vertx.reactivex.core.AbstractVerticle;

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-package com.exactpro.evolution.messagestore;
+package com.exactpro.th2.messagestore;
 
 import com.exactpro.cradle.CradleManager;
 import com.exactpro.cradle.Direction;
@@ -31,8 +31,8 @@ import com.exactpro.evolution.api.phase_1.MessageId;
 import com.exactpro.evolution.api.phase_1.QueueInfo;
 import com.exactpro.evolution.api.phase_1.QueueRequest;
 import com.exactpro.evolution.api.phase_1.RawMessage;
-import com.exactpro.evolution.common.CassandraConfig;
-import com.exactpro.evolution.common.Configuration;
+import com.exactpro.th2.store.common.CassandraConfig;
+import com.exactpro.th2.store.common.Configuration;
 import com.exactpro.evolution.configuration.RabbitMQConfiguration;
 import com.exactpro.evolution.configuration.Th2Configuration.Address;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -52,9 +52,9 @@ import java.util.Map;
 
 import static com.exactpro.cradle.messages.StoredMessageBatch.singleton;
 import static com.exactpro.evolution.api.phase_1.ConnectivityGrpc.newBlockingStub;
-import static com.exactpro.evolution.common.Configuration.readConfiguration;
-import static com.exactpro.evolution.common.utils.ProtoUtil.toBatchId;
-import static com.exactpro.evolution.common.utils.ProtoUtil.toStoredMessageId;
+import static com.exactpro.th2.store.common.Configuration.readConfiguration;
+import static com.exactpro.th2.store.common.utils.ProtoUtil.toBatchId;
+import static com.exactpro.th2.store.common.utils.ProtoUtil.toStoredMessageId;
 import static io.grpc.ManagedChannelBuilder.forAddress;
 import static javax.xml.bind.DatatypeConverter.printHexBinary;
 

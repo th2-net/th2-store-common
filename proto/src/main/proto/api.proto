@@ -6,7 +6,7 @@ import "google/protobuf/wrappers.proto";
 import "phase_1/infra.proto";
 
 option java_multiple_files = true;
-option java_package = "com.exactpro.evolution.eventstore";
+option java_package = "com.exactpro.th2.eventstore";
 
 message StoreReportRequest {
     string reportId = 1;

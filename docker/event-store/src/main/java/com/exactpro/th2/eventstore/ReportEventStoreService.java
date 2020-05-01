@@ -1,10 +1,10 @@
-package com.exactpro.evolution.eventstore;
+package com.exactpro.th2.eventstore;
 
 import com.exactpro.cradle.CradleManager;
 import com.exactpro.cradle.testevents.StoredTestEvent;
-import com.exactpro.evolution.common.utils.AsyncHelper;
-import com.exactpro.evolution.common.utils.ProtoUtil;
-import com.exactpro.evolution.eventstore.EventStoreServiceGrpc.EventStoreServiceVertxImplBase;
+import com.exactpro.th2.store.common.utils.AsyncHelper;
+import com.exactpro.th2.store.common.utils.ProtoUtil;
+import com.exactpro.th2.eventstore.EventStoreServiceGrpc.EventStoreServiceVertxImplBase;
 import io.reactivex.Single;
 import io.vertx.core.Promise;
 import io.vertx.reactivex.core.Vertx;
@@ -13,9 +13,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.stream.Collectors;
 
-import static com.exactpro.evolution.common.utils.ProtoUtil.toBatch;
-import static com.exactpro.evolution.common.utils.ProtoUtil.toStoredTestEventId;
-import static com.exactpro.evolution.common.utils.TimeHelper.toInstant;
+import static com.exactpro.th2.store.common.utils.ProtoUtil.toBatch;
+import static com.exactpro.th2.store.common.utils.ProtoUtil.toStoredTestEventId;
+import static com.exactpro.th2.store.common.utils.TimeHelper.toInstant;
 import static com.google.protobuf.StringValue.of;
 
 

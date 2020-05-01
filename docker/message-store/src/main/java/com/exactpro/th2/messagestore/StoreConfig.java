@@ -1,6 +1,6 @@
-package com.exactpro.evolution.messagestore;
+package com.exactpro.th2.messagestore;
 
-import com.exactpro.evolution.common.CassandraConfig;
+import com.exactpro.th2.store.common.CassandraConfig;
 
 import java.util.Set;
 

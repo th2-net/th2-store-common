@@ -9,6 +9,10 @@ buildscript {
     }
 }
 
+ext {
+    genDir = "${projectDir}/src/gen"
+}
+
 dependencies {
     api "io.vertx:vertx-grpc:${vertxVersion}"
     compile "com.exactpro.th2:grpc-api:1.0-SNAPSHOT"
@@ -24,7 +28,7 @@ protobuf {
             artifact = "io.vertx:protoc-gen-grpc-java:${vertxGrpcVersion}"
         }
     }
-    generateProtoTasks.generatedFilesBaseDir = "${projectDir}/src/gen"
+    generateProtoTasks.generatedFilesBaseDir = genDir
     generateProtoTasks {
         all()*.plugins {
             grpc
@@ -41,3 +45,7 @@ sourceSets {
     }
 }
 compileJava.dependsOn.add('generateProto')
+
+clean {
+    delete genDir
+}

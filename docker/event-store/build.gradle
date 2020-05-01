@@ -7,5 +7,5 @@ dependencies {
 }
 
 application {
-    mainClassName 'com.exactpro.evolution.eventstore.EventStoreMain'
+    mainClassName 'com.exactpro.th2.eventstorage.EventStoreMain'
 }

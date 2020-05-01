@@ -8,19 +8,14 @@
  * information which is the property of Exactpro Systems LLC or its licensors.
  ******************************************************************************/
 
-package com.exactpro.evolution.common;
+package com.exactpro.th2.store.common;
 
 import com.exactpro.cradle.cassandra.connection.CassandraConnectionSettings;
 import com.exactpro.evolution.configuration.Configuration;
-import com.exactpro.evolution.configuration.RabbitMQConfiguration;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetAddress;
-import java.util.Properties;
 
 import static java.lang.System.getenv;
 import static org.apache.commons.lang3.ObjectUtils.defaultIfNull;
