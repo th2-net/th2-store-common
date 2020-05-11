@@ -8,8 +8,8 @@ pipeline {
                                     returnStdout: true,
                                     script: 'git rev-list --count VERSION-1.0..HEAD'
                                     ).trim()}""" //TODO: Calculate revision from a specific tag instead of a root commit
-        NEXUS = credentials('docker-user_nexus.exp.exactpro.com_9000')
-        NEXUS_URL = 'nexus.exactpro.com:9000'
+        TH2_REGISTRY = credentials('TH2_REGISTRY_USER')
+        TH2_REGISTRY_URL = credentials('TH2_REGISTRY')
         GRADLE_SWITCHES = " --warning-mode all --stacktrace -Pversion_build=${BUILD_NUMBER} -Pversion_maintenance=${VERSION_MAINTENANCE}"
         GCHAT_WEB_HOOK = credentials('th2-dev-environment-web-hook')
         GCHAT_THREAD_NAME = credentials('th2-dev-environment-release-docker-images-thread')
@@ -24,11 +24,11 @@ pipeline {
         }
         stage('Publish') {
             steps {
-                // publish via docker cli image to Nexus
                 sh """
-                    docker login -u ${NEXUS_USR} -p ${NEXUS_PSW} ${NEXUS_URL}
-                    ./gradlew dockerPush dockerPushRemote-latest ${GRADLE_SWITCHES}
-                    docker logout ${NEXUS_URL}
+                    docker login -u ${TH2_REGISTRY_USR} -p ${TH2_REGISTRY_PSW} ${TH2_REGISTRY_URL}
+                    ./gradlew dockerPush dockerPushRemote-latest ${GRADLE_SWITCHES} \
+                    -Ptarget_docker_repository=${TH2_REGISTRY_URL}
+                    docker logout ${TH2_REGISTRY_URL}
                 """ // TODO: Exec from root repository
             }
         }
