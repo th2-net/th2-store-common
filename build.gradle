@@ -13,7 +13,7 @@ subprojects {
         junitJupiterEngineVersion = '5.4.0'
     }
 
-    group = 'com.exactpro.evolution.store'
+    group = 'com.exactpro.th2'
     version = "${version_major}.${version_minor}.${version_maintenance}.${version_build}"
     sourceCompatibility = '1.8'
 

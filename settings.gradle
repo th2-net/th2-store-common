@@ -1,6 +1,6 @@
 rootProject.name = 'EventStore'
 
-include 'proto'
+include 'grpc-event-store'
 include 'common'
 include 'docker'
 include 'docker:event-store'

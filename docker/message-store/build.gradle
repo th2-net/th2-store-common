@@ -11,7 +11,7 @@ def doOnChange = './gradlew classes'
 
 dependencies {
     implementation project(":common")
-    implementation project(":proto")
+    implementation project(":grpc-event-store")
     implementation "io.vertx:vertx-rx-java2:$vertxVersion"
     implementation "io.vertx:vertx-rabbitmq-client:$vertxVersion"
 
