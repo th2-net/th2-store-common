@@ -1,13 +1,6 @@
-apply plugin: 'com.github.johnrengelman.shadow'
-
 application {
     mainClassName = 'com.exactpro.th2.messagestore.DemoMessageStore'
-    //mainClassName = 'io.vertx.core.Launcher' //TODO: Reuse in separated event storage
 }
-
-def mainVerticleName = 'com.exactpro.th2.MainVerticle'
-def watchForChange = 'src/**/*'
-def doOnChange = './gradlew classes'
 
 dependencies {
     implementation project(":common")
@@ -27,24 +20,9 @@ dependencies {
     testImplementation "org.junit.jupiter:junit-jupiter-api:$junitJupiterEngineVersion"
 }
 
-
-shadowJar {
-    classifier = 'fat'
-    manifest {
-        attributes 'Main-Verticle': mainVerticleName
-    }
-    mergeServiceFiles {
-        include 'META-INF/services/io.vertx.core.spi.VerticleFactory'
-    }
-}
-
 test {
     useJUnitPlatform()
     testLogging {
         events 'PASSED', 'FAILED', 'SKIPPED'
     }
-}
-
-run {
-    args = ['run', mainVerticleName, "--redeploy=$watchForChange", "--launcher-class=$mainClassName", "--on-redeploy=$doOnChange"]
 }
