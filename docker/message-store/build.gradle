@@ -5,20 +5,24 @@ application {
     //mainClassName = 'io.vertx.core.Launcher' //TODO: Reuse in separated event storage
 }
 
-def mainVerticleName = 'com.exactpro.evolution.MainVerticle'
+def mainVerticleName = 'com.exactpro.th2.MainVerticle'
 def watchForChange = 'src/**/*'
 def doOnChange = './gradlew classes'
 
 dependencies {
     implementation project(":common")
     implementation project(":grpc-event-store")
+
+    implementation "com.exactpro.th2:th2-grpc-connectivity:${th2ConnectivityVersion}"
+
     implementation "io.vertx:vertx-rx-java2:$vertxVersion"
     implementation "io.vertx:vertx-rabbitmq-client:$vertxVersion"
+    testImplementation "io.vertx:vertx-junit5:$vertxVersion"
 
     testImplementation "org.powermock:powermock-module-junit4:2.0.2"
     testImplementation "org.powermock:powermock-api-mockito:1.7.4"
     testImplementation group: 'org.mockito', name: 'mockito-all', version: '1.10.19'
-    testImplementation "io.vertx:vertx-junit5:$vertxVersion"
+
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junitJupiterEngineVersion"
     testImplementation "org.junit.jupiter:junit-jupiter-api:$junitJupiterEngineVersion"
 }

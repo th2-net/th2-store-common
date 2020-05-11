@@ -22,9 +22,9 @@ import com.exactpro.cradle.testevents.StoredTestEventBatch;
 import com.exactpro.cradle.testevents.StoredTestEventBatchId;
 import com.exactpro.cradle.testevents.StoredTestEventId;
 import com.exactpro.cradle.utils.CradleStorageException;
-import com.exactpro.evolution.api.phase_1.BatchId;
-import com.exactpro.evolution.api.phase_1.EventId;
-import com.exactpro.evolution.api.phase_1.MessageId;
+import com.exactpro.th2.infra.BatchId;
+import com.exactpro.th2.infra.EventId;
+import com.exactpro.th2.infra.MessageId;
 
 public class ProtoUtil {
 

@@ -15,12 +15,12 @@
  ******************************************************************************/
 package com.exactpro.th2.store.common;
 
-import com.exactpro.evolution.configuration.MicroserviceConfiguration;
+import com.exactpro.th2.configuration.MicroserviceConfiguration;
 
 import java.io.IOException;
 import java.io.InputStream;
 
-import static com.exactpro.evolution.ConfigurationUtils.safeLoad;
+import static com.exactpro.th2.ConfigurationUtils.safeLoad;
 import static java.lang.System.getenv;
 import static org.apache.commons.lang3.ObjectUtils.defaultIfNull;
 

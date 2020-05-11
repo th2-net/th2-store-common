@@ -1,9 +1,10 @@
 syntax = "proto3";
+package th2;
 
 import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
-import "phase_1/infra.proto";
+import "th2/infra.proto";
 
 option java_multiple_files = true;
 option java_package = "com.exactpro.th2.eventstore";
@@ -21,12 +22,12 @@ message StoreEventRequest {
     string eventType = 3;
     google.protobuf.Timestamp eventStartTimestamp = 4;
     google.protobuf.Timestamp eventEndTimestamp = 5;
-    phase_1.EventId parentEventId = 6;
+    EventId parentEventId = 6;
     reserved 7; // string reportId = 7;
     bool success = 8;
-    repeated phase_1.MessageId attachedMessageIds = 9;
+    repeated MessageId attachedMessageIds = 9;
     bytes body = 10;
-    phase_1.EventId eventId = 11;
+    EventId eventId = 11;
 }
 
 message Response {

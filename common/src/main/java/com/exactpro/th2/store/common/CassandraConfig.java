@@ -11,7 +11,7 @@
 package com.exactpro.th2.store.common;
 
 import com.exactpro.cradle.cassandra.connection.CassandraConnectionSettings;
-import com.exactpro.evolution.configuration.Configuration;
+import com.exactpro.th2.configuration.Configuration;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.io.IOException;

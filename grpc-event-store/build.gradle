@@ -16,7 +16,9 @@ ext {
 
 dependencies {
     api "io.vertx:vertx-grpc:${vertxVersion}"
-    compile "com.exactpro.th2:grpc-api:1.0-SNAPSHOT"
+
+    compile "com.exactpro.th2:th2-grpc-infra:${th2CommonVersion}"
+
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
@@ -39,7 +41,6 @@ protobuf {
 
 sourceSets {
     main {
-
         java {
             srcDirs 'src/main/java', 'src/gen/main/java', 'src/gen/main/grpc'
         }

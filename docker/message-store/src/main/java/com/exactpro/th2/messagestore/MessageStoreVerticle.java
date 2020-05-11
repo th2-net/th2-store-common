@@ -1,9 +1,9 @@
-//package com.exactpro.evolution.messagestore;
+//package com.exactpro.th2.messagestore;
 //
 //import com.exactpro.cradle.CradleManager;
 //import com.exactpro.cradle.cassandra.CassandraCradleManager;
 //import com.exactpro.cradle.cassandra.connection.CassandraConnection;
-//import com.exactpro.evolution.common.utils.AsyncHelper;
+//import com.exactpro.th2.common.utils.AsyncHelper;
 //import io.reactivex.Completable;
 //import io.reactivex.Flowable;
 //import io.reactivex.Single;
@@ -11,7 +11,7 @@
 //import io.vertx.reactivex.core.AbstractVerticle;
 //import io.vertx.reactivex.core.buffer.Buffer;
 //
-//import static com.exactpro.evolution.common.Configuration.getEnvCradleInstanceName;
+//import static com.exactpro.th2.common.Configuration.getEnvCradleInstanceName;
 //
 //public class MessageStoreVerticle extends AbstractVerticle {
 //  private static final String CONFIG_FILE_PATH = "MessageStoreConfig.json";

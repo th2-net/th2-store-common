@@ -1,6 +1,6 @@
 package com.exactpro.th2.messagestore;
 
-import com.exactpro.evolution.RabbitMqSubscriber;
+import com.exactpro.th2.RabbitMqSubscriber;
 import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Delivery;
 import io.reactivex.BackpressureStrategy;
