@@ -19,7 +19,10 @@ subprojects {
 
     group = 'com.exactpro.th2'
     version = "${version_major}.${version_minor}-SNAPSHOT"
-    sourceCompatibility = '1.8'
+
+    sourceCompatibility = 1.11
+    targetCompatibility = 1.11
+
 
     repositories {
         maven {
