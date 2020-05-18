@@ -22,9 +22,17 @@ import com.exactpro.cradle.testevents.StoredTestEventBatch;
 import com.exactpro.cradle.testevents.StoredTestEventBatchId;
 import com.exactpro.cradle.testevents.StoredTestEventId;
 import com.exactpro.cradle.utils.CradleStorageException;
-import com.exactpro.th2.infra.BatchId;
-import com.exactpro.th2.infra.EventId;
-import com.exactpro.th2.infra.MessageId;
+import com.exactpro.th2.eventstore.grpc.BatchId;
+import com.exactpro.th2.eventstore.grpc.EventId;
+import com.exactpro.th2.infra.grpc.MessageID;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.IntStream.range;
 
 public class ProtoUtil {
 
@@ -37,12 +45,9 @@ public class ProtoUtil {
         return StoredTestEventBatch.singleton(event);
     }
 
-    public static StoredMessageBatchId toBatchId(BatchId protoBatchId) {
-        return new StoredMessageBatchId(protoBatchId.getId());
-    }
-
-    public static StoredMessageId toStoredMessageId(MessageId messageId) {
-        return new StoredMessageId(new StoredMessageBatchId(messageId.getBatchId().getId()),
-                (int)messageId.getIndex());
+    //FIXME: This method doesn't work because TH2 API migrated to sequence
+    public static StoredMessageId toStoredMessageId(MessageID messageId) {
+        return new StoredMessageId(new StoredMessageBatchId(String.valueOf(messageId.getSequence())),
+                (int)messageId.getSequence()); //FIXME: This is stub
     }
 }

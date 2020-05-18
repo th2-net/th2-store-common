@@ -2,9 +2,11 @@ package com.exactpro.th2.eventstore;
 
 import com.exactpro.cradle.CradleManager;
 import com.exactpro.cradle.testevents.StoredTestEvent;
+import com.exactpro.th2.eventstore.grpc.EventStoreServiceGrpc.EventStoreServiceVertxImplBase;
+import com.exactpro.th2.eventstore.grpc.Response;
+import com.exactpro.th2.eventstore.grpc.StoreEventRequest;
 import com.exactpro.th2.store.common.utils.AsyncHelper;
 import com.exactpro.th2.store.common.utils.ProtoUtil;
-import com.exactpro.th2.eventstore.EventStoreServiceGrpc.EventStoreServiceVertxImplBase;
 import io.reactivex.Single;
 import io.vertx.core.Promise;
 import io.vertx.reactivex.core.Vertx;
@@ -63,7 +65,7 @@ public class ReportEventStoreService extends EventStoreServiceVertxImplBase {
                                 cradleManager.getStorage().storeTestEventMessagesLink(
                                         eventBatch.getTestEventsList().get(0).getId(),
                                         request.getAttachedMessageIdsList().stream()
-                                                .map(ProtoUtil::toStoredMessageId)
+                                                .map(ProtoUtil::toStoredMessageId)// FIXME: This method doesn't work because TH2 API migrated to sequence
                                                 .collect(Collectors.toSet())
                                 );
                             }

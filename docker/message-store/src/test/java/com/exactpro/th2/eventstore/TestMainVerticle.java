@@ -2,6 +2,9 @@ package com.exactpro.th2.eventstore;
 
 import com.exactpro.cradle.CradleManager;
 import com.exactpro.cradle.CradleStorage;
+import com.exactpro.th2.eventstore.grpc.EventStoreServiceGrpc;
+import com.exactpro.th2.eventstore.grpc.Response;
+import com.exactpro.th2.eventstore.grpc.StoreEventRequest;
 import io.grpc.ManagedChannel;
 import io.vertx.grpc.VertxChannelBuilder;
 import io.vertx.junit5.Checkpoint;
