@@ -22,21 +22,12 @@ import com.exactpro.cradle.testevents.StoredTestEventBatch;
 import com.exactpro.cradle.testevents.StoredTestEventBatchId;
 import com.exactpro.cradle.testevents.StoredTestEventId;
 import com.exactpro.cradle.utils.CradleStorageException;
-import com.exactpro.th2.eventstore.grpc.BatchId;
-import com.exactpro.th2.eventstore.grpc.EventId;
+import com.exactpro.th2.eventstore.grpc.EventID;
 import com.exactpro.th2.infra.grpc.MessageID;
-
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.IntStream.range;
 
 public class ProtoUtil {
 
-    public static StoredTestEventId toStoredTestEventId(EventId eventId) {
+    public static StoredTestEventId toStoredTestEventId(EventID eventId) {
         return new StoredTestEventId(new StoredTestEventBatchId(eventId.getBatchId().getId()),
                 (int)eventId.getIndex());
     }

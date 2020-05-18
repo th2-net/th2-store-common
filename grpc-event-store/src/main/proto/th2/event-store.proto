@@ -9,27 +9,27 @@ import "th2/infra.proto";
 option java_multiple_files = true;
 option java_package = "com.exactpro.th2.eventstore.grpc";
 
-message BatchId {
+message BatchID {
     string id = 1;
 }
 
-message EventId {
-    BatchId batchId = 1;
+message EventID {
+    BatchID batchId = 1;
     int64 index = 2;
 }
 
 message StoreEventRequest {
     reserved 1; // string eventId = 1;
-    string eventName = 2;
-    string eventType = 3;
-    google.protobuf.Timestamp eventStartTimestamp = 4;
-    google.protobuf.Timestamp eventEndTimestamp = 5;
-    EventId parentEventId = 6;
+    string event_name = 2;
+    string event_type = 3;
+    google.protobuf.Timestamp event_start_timestamp = 4;
+    google.protobuf.Timestamp event_end_timestamp = 5;
+    EventID parent_event_id = 6;
     reserved 7; // string reportId = 7;
     bool success = 8;
-    repeated MessageID attachedMessageIds = 9;
+    repeated MessageID attached_message_ids = 9;
     bytes body = 10;
-    EventId eventId = 11;
+    EventID event_id = 11;
 }
 
 message Response {
