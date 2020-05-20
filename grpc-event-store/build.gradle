@@ -73,6 +73,8 @@ publishing {
     }
 }
 
+artifactoryPublish.skip = false
+
 clean {
     delete genDir
 }
