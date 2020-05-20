@@ -3,10 +3,30 @@ plugins {
     id "com.jfrog.artifactory" version '4.15.1'
 }
 
+allprojects {
+    apply plugin: 'com.jfrog.artifactory'
+
+    artifactoryPublish.skip = true
+
+    artifactory {
+        publish {
+            defaults {
+                // Reference to Gradle publications defined in the build script.
+                // This is how we tell the Artifactory Plugin which artifacts should be
+                // published to Artifactory.
+                publications('mavenJava')
+                publishArtifacts = true
+                publishBuildInfo = true
+                // Properties to be attached to the published artifacts.
+                publishPom = true
+            }
+        }
+    }
+}
+
 subprojects {
     apply plugin: 'java'
     apply plugin: 'java-library'
-    apply plugin: 'com.jfrog.artifactory'
 
     ext {
         sharedDir                   = file("${project.rootDir}/shared")
@@ -40,23 +60,6 @@ subprojects {
         configurations.all {
             resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
             resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
-        }
-    }
-
-    artifactoryPublish.skip = true
-
-    artifactory {
-        publish {
-            defaults {
-                // Reference to Gradle publications defined in the build script.
-                // This is how we tell the Artifactory Plugin which artifacts should be
-                // published to Artifactory.
-                publications('mavenJava')
-                publishArtifacts = true
-                publishBuildInfo = true
-                // Properties to be attached to the published artifacts.
-                publishPom = true
-            }
         }
     }
 }
