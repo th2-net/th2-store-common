@@ -1,4 +1,4 @@
-FROM openjdk:8-alpine
+FROM openjdk:12-alpine
 ENV CRADLE_INSTANCE_NAME=instance1 \
     CASSANDRA_DATA_CENTER=kos \
     CASSANDRA_HOST=cassandra \
