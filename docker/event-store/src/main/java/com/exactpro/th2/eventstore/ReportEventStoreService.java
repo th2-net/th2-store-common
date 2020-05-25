@@ -1,10 +1,27 @@
+/*
+ * Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.exactpro.th2.eventstore;
 
 import com.exactpro.cradle.CradleManager;
-import com.exactpro.cradle.testevents.StoredTestEvent;
+import com.exactpro.cradle.testevents.StoredTestEventBatch;
+import com.exactpro.th2.eventstore.grpc.Event;
 import com.exactpro.th2.eventstore.grpc.EventStoreServiceGrpc.EventStoreServiceVertxImplBase;
 import com.exactpro.th2.eventstore.grpc.Response;
 import com.exactpro.th2.eventstore.grpc.StoreEventRequest;
+import com.exactpro.th2.infra.grpc.MessageID;
 import com.exactpro.th2.store.common.utils.AsyncHelper;
 import com.exactpro.th2.store.common.utils.ProtoUtil;
 import io.reactivex.Single;
@@ -13,11 +30,9 @@ import io.vertx.reactivex.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.exactpro.th2.store.common.utils.ProtoUtil.toBatch;
-import static com.exactpro.th2.store.common.utils.ProtoUtil.toStoredTestEventId;
-import static com.exactpro.th2.store.common.utils.TimeHelper.toInstant;
 import static com.google.protobuf.StringValue.of;
 
 
@@ -35,43 +50,38 @@ public class ReportEventStoreService extends EventStoreServiceVertxImplBase {
     @Override
     public void storeEvent(StoreEventRequest request, Promise<Response> response) {
         AsyncHelper.executeWithLock(vertx, STORAGE_LOCK_NAME, storeEvent(request)
-                .doOnSuccess(id -> response.complete(Response.newBuilder().setId(of(id)).build()))
-                .doOnError(e -> {
-                    response.complete(Response.newBuilder().setError(of(e.toString())).build());
-                    logger.error("store event error: {}", e.getMessage(), e);
-                })
-                .ignoreElement()
+            .doOnSuccess(id -> response.complete(Response.newBuilder().setId(of(id)).build()))
+            .doOnError(e -> {
+                response.complete(Response.newBuilder().setError(of(e.toString())).build());
+                logger.error("store event error: {}", e.getMessage(), e);
+            })
+            .ignoreElement()
         ).subscribe();
     }
 
     private Single<String> storeEvent(StoreEventRequest request) {
-        return Single.just(request)
-                .map(r -> {
-                    StoredTestEvent result = new StoredTestEvent();
-                    result.setId(toStoredTestEventId(r.getEventId()));
-                    result.setName(r.getEventName());
-                    result.setType(r.getEventType());
-                    result.setParentId(r.hasParentEventId() ? toStoredTestEventId(r.getParentEventId()) : null);
-                    result.setStartTimestamp(r.hasEventStartTimestamp() ? toInstant(r.getEventStartTimestamp()) : null);
-                    result.setEndTimestamp(r.hasEventEndTimestamp() ? toInstant(r.getEventEndTimestamp()) : null);
-                    result.setSuccess(r.getSuccess());
-                    result.setContent(r.getBody().toByteArray());
-                    return toBatch(result);
-                }).flatMap(eventBatch -> vertx.rxExecuteBlocking(
-                        AsyncHelper.createHandler(() -> {
-                            cradleManager.getStorage().storeTestEventBatch(eventBatch);
-                            logger.debug("event id: {}, event: {}", eventBatch.getId().getId(), eventBatch);
-                            if (request.getAttachedMessageIdsCount() != 0) {
-                                cradleManager.getStorage().storeTestEventMessagesLink(
-                                        eventBatch.getTestEventsList().get(0).getId(),
-                                        request.getAttachedMessageIdsList().stream()
-                                                .map(ProtoUtil::toStoredMessageId)// FIXME: This method doesn't work because TH2 API migrated to sequence
-                                                .collect(Collectors.toSet())
-                                );
-                            }
-                            return eventBatch.getTestEventsList().get(0).getId().toString();
-                        })
-                        ).toSingle()
-                );
+        return Single.just(request.getEventBatch())
+            .flatMap(protoBatch -> vertx.rxExecuteBlocking(
+                AsyncHelper.createHandler(() -> {
+                    StoredTestEventBatch cradleBatch = ProtoUtil.toCradleBatch(protoBatch);
+                    cradleManager.getStorage().storeTestEvent(cradleBatch);
+                    logger.debug("Stored batch id '{}' parent id '{}' size '{}'",
+                        cradleBatch.getId(), cradleBatch.getParentId(), cradleBatch.getTestEventsCount());
+
+                    for (Event protoEvent : protoBatch.getEventsList()) {
+                        List<MessageID> attachedMessageIds = protoEvent.getAttachedMessageIdsList();
+                        if (!attachedMessageIds.isEmpty()) {
+                            cradleManager.getStorage().storeTestEventMessagesLink(
+                                ProtoUtil.toCradleEventID(protoEvent.getId()),
+                                cradleBatch.getId(),
+                                attachedMessageIds.stream()
+                                    .map(ProtoUtil::toStoredMessageId)
+                                    .collect(Collectors.toList()));
+                        }
+                    }
+                    return String.valueOf(cradleBatch.getId());
+                })
+                ).toSingle()
+            );
     }
 }

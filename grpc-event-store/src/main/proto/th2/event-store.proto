@@ -13,23 +13,34 @@ message BatchID {
     string id = 1;
 }
 
+enum EventStatus {
+    SUCCESS = 0;
+    FAILED = 1;
+}
+
 message EventID {
-    BatchID batchId = 1;
-    int64 index = 2;
+    string id = 1; // Unique event id in TH2 deploy
+}
+
+message Event {
+    EventID id = 1;
+    EventID parent_id = 2; // Event id of parent event. It is null for root event
+    google.protobuf.Timestamp start_timestamp = 3;
+    google.protobuf.Timestamp end_timestamp = 4;
+    EventStatus status = 5; // Aggregated status of current and children events which sync written.
+    string name = 6;
+    string type = 7;
+    bytes body = 8;
+    repeated MessageID attached_message_ids = 9;
+}
+
+message EventBatch {
+    EventID parent_event_id = 1;
+    repeated Event events = 2; // Events optional related to between themselves. No events outside this batch should refer to the events in this batch.
 }
 
 message StoreEventRequest {
-    reserved 1; // string eventId = 1;
-    string event_name = 2;
-    string event_type = 3;
-    google.protobuf.Timestamp event_start_timestamp = 4;
-    google.protobuf.Timestamp event_end_timestamp = 5;
-    EventID parent_event_id = 6;
-    reserved 7; // string reportId = 7;
-    bool success = 8;
-    repeated MessageID attached_message_ids = 9;
-    bytes body = 10;
-    EventID event_id = 11;
+    EventBatch event_batch = 1;
 }
 
 message Response {
