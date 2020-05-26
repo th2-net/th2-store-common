@@ -40,6 +40,10 @@ message EventBatch {
 }
 
 message StoreEventRequest {
+    Event event = 1;
+}
+
+message StoreEventBatchRequest {
     EventBatch event_batch = 1;
 }
 
@@ -50,4 +54,5 @@ message Response {
 
 service EventStoreService {
     rpc StoreEvent (StoreEventRequest) returns (Response);
+    rpc StoreEventBatch (StoreEventBatchRequest) returns (Response);
 }

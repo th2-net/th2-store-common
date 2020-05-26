@@ -31,6 +31,7 @@ import com.exactpro.cradle.testevents.TestEventToStoreBuilder;
 import com.exactpro.cradle.utils.CradleStorageException;
 import com.exactpro.th2.eventstore.grpc.Event;
 import com.exactpro.th2.eventstore.grpc.EventBatchOrBuilder;
+import com.exactpro.th2.eventstore.grpc.EventID;
 import com.exactpro.th2.eventstore.grpc.EventIDOrBuilder;
 import com.exactpro.th2.eventstore.grpc.EventOrBuilder;
 import com.exactpro.th2.eventstore.grpc.EventStatus;

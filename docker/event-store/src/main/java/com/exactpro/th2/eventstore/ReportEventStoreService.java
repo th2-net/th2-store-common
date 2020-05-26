@@ -16,10 +16,15 @@
 package com.exactpro.th2.eventstore;
 
 import com.exactpro.cradle.CradleManager;
+import com.exactpro.cradle.messages.StoredMessageId;
+import com.exactpro.cradle.testevents.StoredTestEvent;
 import com.exactpro.cradle.testevents.StoredTestEventBatch;
+import com.exactpro.cradle.testevents.StoredTestEventId;
+import com.exactpro.cradle.testevents.StoredTestEventSingle;
 import com.exactpro.th2.eventstore.grpc.Event;
 import com.exactpro.th2.eventstore.grpc.EventStoreServiceGrpc.EventStoreServiceVertxImplBase;
 import com.exactpro.th2.eventstore.grpc.Response;
+import com.exactpro.th2.eventstore.grpc.StoreEventBatchRequest;
 import com.exactpro.th2.eventstore.grpc.StoreEventRequest;
 import com.exactpro.th2.infra.grpc.MessageID;
 import com.exactpro.th2.store.common.utils.AsyncHelper;
@@ -30,6 +35,7 @@ import io.vertx.reactivex.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -59,7 +65,38 @@ public class ReportEventStoreService extends EventStoreServiceVertxImplBase {
         ).subscribe();
     }
 
+    @Override
+    public void storeEventBatch(StoreEventBatchRequest request, Promise<Response> response) {
+        AsyncHelper.executeWithLock(vertx, STORAGE_LOCK_NAME, storeEventBatch(request)
+            .doOnSuccess(id -> response.complete(Response.newBuilder().setId(of(id)).build()))
+            .doOnError(e -> {
+                response.complete(Response.newBuilder().setError(of(e.toString())).build());
+                logger.error("store event error: {}", e.getMessage(), e);
+            })
+            .ignoreElement()
+        ).subscribe();
+    }
+
     private Single<String> storeEvent(StoreEventRequest request) {
+        return Single.just(request.getEvent())
+            .flatMap(protoEvent -> vertx.rxExecuteBlocking(
+                AsyncHelper.createHandler(() -> {
+
+                    StoredTestEventSingle cradleEventSingle = StoredTestEvent.newStoredTestEventSingle(ProtoUtil.toCradleEvent(protoEvent));
+
+                    cradleManager.getStorage().storeTestEvent(cradleEventSingle);
+                    logger.debug("Stored single event id '{}' parent id '{}'",
+                        cradleEventSingle.getId(), cradleEventSingle.getParentId());
+
+                    storeAttachedMessages(null, protoEvent);
+
+                    return String.valueOf(cradleEventSingle.getId());
+                })
+                ).toSingle()
+            );
+    }
+
+    private Single<String> storeEventBatch(StoreEventBatchRequest request) {
         return Single.just(request.getEventBatch())
             .flatMap(protoBatch -> vertx.rxExecuteBlocking(
                 AsyncHelper.createHandler(() -> {
@@ -69,19 +106,26 @@ public class ReportEventStoreService extends EventStoreServiceVertxImplBase {
                         cradleBatch.getId(), cradleBatch.getParentId(), cradleBatch.getTestEventsCount());
 
                     for (Event protoEvent : protoBatch.getEventsList()) {
-                        List<MessageID> attachedMessageIds = protoEvent.getAttachedMessageIdsList();
-                        if (!attachedMessageIds.isEmpty()) {
-                            cradleManager.getStorage().storeTestEventMessagesLink(
-                                ProtoUtil.toCradleEventID(protoEvent.getId()),
-                                cradleBatch.getId(),
-                                attachedMessageIds.stream()
-                                    .map(ProtoUtil::toStoredMessageId)
-                                    .collect(Collectors.toList()));
-                        }
+                        storeAttachedMessages(cradleBatch.getId(), protoEvent);
                     }
                     return String.valueOf(cradleBatch.getId());
                 })
                 ).toSingle()
             );
+    }
+
+    private void storeAttachedMessages(StoredTestEventId batchID, Event protoEvent) throws IOException {
+        List<MessageID> attachedMessageIds = protoEvent.getAttachedMessageIdsList();
+        if (!attachedMessageIds.isEmpty()) {
+            List<StoredMessageId> messagesIds = attachedMessageIds.stream()
+                .map(ProtoUtil::toStoredMessageId)
+                .collect(Collectors.toList());
+
+            cradleManager.getStorage().storeTestEventMessagesLink(
+                ProtoUtil.toCradleEventID(protoEvent.getId()),
+                batchID,
+                messagesIds);
+            logger.debug("Stored attached messages '{}' to event id '{}'", messagesIds, protoEvent.getId().getId());
+        }
     }
 }
