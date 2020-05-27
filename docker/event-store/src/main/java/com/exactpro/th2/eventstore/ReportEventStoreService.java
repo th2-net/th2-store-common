@@ -82,15 +82,20 @@ public class ReportEventStoreService extends EventStoreServiceVertxImplBase {
             .flatMap(protoEvent -> vertx.rxExecuteBlocking(
                 AsyncHelper.createHandler(() -> {
 
-                    StoredTestEventSingle cradleEventSingle = StoredTestEvent.newStoredTestEventSingle(ProtoUtil.toCradleEvent(protoEvent));
+                    try {
+                        StoredTestEventSingle cradleEventSingle = StoredTestEvent.newStoredTestEventSingle(ProtoUtil.toCradleEvent(protoEvent));
 
-                    cradleManager.getStorage().storeTestEvent(cradleEventSingle);
-                    logger.debug("Stored single event id '{}' parent id '{}'",
-                        cradleEventSingle.getId(), cradleEventSingle.getParentId());
+                        cradleManager.getStorage().storeTestEvent(cradleEventSingle);
+                        logger.debug("Stored single event id '{}' parent id '{}'",
+                            cradleEventSingle.getId(), cradleEventSingle.getParentId());
 
-                    storeAttachedMessages(null, protoEvent);
+                        storeAttachedMessages(null, protoEvent);
 
-                    return String.valueOf(cradleEventSingle.getId());
+                        return String.valueOf(cradleEventSingle.getId());
+                    } catch (RuntimeException e) {
+                        logger.error("Evet storing '{}' failed", protoEvent, e);
+                        throw e;
+                    }
                 })
                 ).toSingle()
             );
@@ -100,15 +105,20 @@ public class ReportEventStoreService extends EventStoreServiceVertxImplBase {
         return Single.just(request.getEventBatch())
             .flatMap(protoBatch -> vertx.rxExecuteBlocking(
                 AsyncHelper.createHandler(() -> {
-                    StoredTestEventBatch cradleBatch = ProtoUtil.toCradleBatch(protoBatch);
-                    cradleManager.getStorage().storeTestEvent(cradleBatch);
-                    logger.debug("Stored batch id '{}' parent id '{}' size '{}'",
-                        cradleBatch.getId(), cradleBatch.getParentId(), cradleBatch.getTestEventsCount());
+                    try {
+                        StoredTestEventBatch cradleBatch = ProtoUtil.toCradleBatch(protoBatch);
+                        cradleManager.getStorage().storeTestEvent(cradleBatch);
+                        logger.debug("Stored batch id '{}' parent id '{}' size '{}'",
+                            cradleBatch.getId(), cradleBatch.getParentId(), cradleBatch.getTestEventsCount());
 
-                    for (Event protoEvent : protoBatch.getEventsList()) {
-                        storeAttachedMessages(cradleBatch.getId(), protoEvent);
+                        for (Event protoEvent : protoBatch.getEventsList()) {
+                            storeAttachedMessages(cradleBatch.getId(), protoEvent);
+                        }
+                        return String.valueOf(cradleBatch.getId());
+                    } catch (RuntimeException e) {
+                        logger.error("Evet batch storing '{}' failed", protoBatch, e);
+                        throw e;
                     }
-                    return String.valueOf(cradleBatch.getId());
                 })
                 ).toSingle()
             );
