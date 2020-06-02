@@ -26,6 +26,7 @@ import com.exactpro.cradle.testevents.MinimalTestEventToStore;
 import com.exactpro.cradle.testevents.StoredTestEvent;
 import com.exactpro.cradle.testevents.StoredTestEventBatch;
 import com.exactpro.cradle.testevents.StoredTestEventId;
+import com.exactpro.cradle.testevents.TestEventBatchToStore;
 import com.exactpro.cradle.testevents.TestEventToStore;
 import com.exactpro.cradle.testevents.TestEventToStoreBuilder;
 import com.exactpro.cradle.utils.CradleStorageException;
@@ -50,10 +51,7 @@ public class ProtoUtil {
     }
 
     public static StoredTestEventBatch toCradleBatch(EventBatchOrBuilder protoEventBatch) throws CradleStorageException {
-        StoredTestEventBatch cradleEventsBatch = StoredTestEvent.newStoredTestEventBatch(MinimalTestEventToStore.newMinimalTestEventBuilder()
-            .id(new StoredTestEventId(Uuids.timeBased().toString()))
-            .name("Batch of events") // TODO: Can this field have another value?
-            .type("Multi-dummy") // TODO: Can this field have another value?
+        StoredTestEventBatch cradleEventsBatch = StoredTestEvent.newStoredTestEventBatch(TestEventBatchToStore.builder()
             .parentId(toCradleEventID(protoEventBatch.getParentEventId()))
             .build());
         for (Event protoEvent : protoEventBatch.getEventsList()) {
@@ -81,7 +79,7 @@ public class ProtoUtil {
     }
 
     public static TestEventToStore toCradleEvent(EventOrBuilder protoEvent) {
-        TestEventToStoreBuilder builder = TestEventToStore.newTestEventBuilder()
+        TestEventToStoreBuilder builder = TestEventToStore.builder()
             .id(toCradleEventID(protoEvent.getId()))
             .name(protoEvent.getName())
             .type(protoEvent.getType())
