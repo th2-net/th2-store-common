@@ -9,36 +9,6 @@ import "th2/infra.proto";
 option java_multiple_files = true;
 option java_package = "com.exactpro.th2.eventstore.grpc";
 
-message BatchID {
-    string id = 1;
-}
-
-enum EventStatus {
-    SUCCESS = 0;
-    FAILED = 1;
-}
-
-message EventID {
-    string id = 1; // Unique event id in TH2 deploy
-}
-
-message Event {
-    EventID id = 1;
-    EventID parent_id = 2; // Event id of parent event. It is null for root event
-    google.protobuf.Timestamp start_timestamp = 3;
-    google.protobuf.Timestamp end_timestamp = 4;
-    EventStatus status = 5; // Aggregated status of current and children events which sync written.
-    string name = 6;
-    string type = 7;
-    bytes body = 8;
-    repeated MessageID attached_message_ids = 9;
-}
-
-message EventBatch {
-    EventID parent_event_id = 1;
-    repeated Event events = 2; // Events optional related to between themselves. No events outside this batch should refer to the events in this batch.
-}
-
 message StoreEventRequest {
     Event event = 1;
 }

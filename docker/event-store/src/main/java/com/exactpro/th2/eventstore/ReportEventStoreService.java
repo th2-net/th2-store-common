@@ -21,7 +21,7 @@ import com.exactpro.cradle.testevents.StoredTestEvent;
 import com.exactpro.cradle.testevents.StoredTestEventBatch;
 import com.exactpro.cradle.testevents.StoredTestEventId;
 import com.exactpro.cradle.testevents.StoredTestEventSingle;
-import com.exactpro.th2.eventstore.grpc.Event;
+import com.exactpro.th2.infra.grpc.Event;
 import com.exactpro.th2.eventstore.grpc.EventStoreServiceGrpc.EventStoreServiceVertxImplBase;
 import com.exactpro.th2.eventstore.grpc.Response;
 import com.exactpro.th2.eventstore.grpc.StoreEventBatchRequest;
