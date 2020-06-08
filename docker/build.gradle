@@ -21,8 +21,7 @@ subprojects {
     docker {
         name "${target_docker_repository}/${docke_image_name}:${dockerImageVersion}"
         tag 'local-version', "${docke_image_name}:${dockerImageVersion}"
-        tag 'local-latest', "${docke_image_name}:latest"
-        tag 'remote-latest',  "${target_docker_repository}/${docke_image_name}:latest"
+
         copySpec.from(tarTree("$buildDir/distributions/${archivesBaseName}.tar"))
     }
 }
