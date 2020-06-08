@@ -23,10 +23,7 @@ import com.exactpro.cradle.messages.StoredMessageBatch;
 import com.exactpro.cradle.utils.CradleStorageException;
 import com.exactpro.th2.RabbitMqSubscriber;
 import com.exactpro.th2.configuration.RabbitMQConfiguration;
-import com.exactpro.th2.configuration.Th2Configuration.Address;
-import com.exactpro.th2.connectivity.grpc.ConnectivityGrpc.ConnectivityBlockingStub;
-import com.exactpro.th2.connectivity.grpc.QueueInfo;
-import com.exactpro.th2.connectivity.grpc.QueueRequest;
+import com.exactpro.th2.configuration.Th2Configuration.QueueNames;
 import com.exactpro.th2.infra.grpc.Message;
 import com.exactpro.th2.infra.grpc.MessageBatch;
 import com.exactpro.th2.infra.grpc.RawMessage;
@@ -37,7 +34,6 @@ import com.exactpro.th2.store.common.utils.ProtoUtil;
 import com.google.protobuf.MessageLite;
 import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Delivery;
-import io.grpc.ManagedChannel;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,9 +46,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static com.exactpro.cradle.messages.StoredMessageBatch.MAX_MESSAGES_COUNT;
-import static com.exactpro.th2.connectivity.grpc.ConnectivityGrpc.newBlockingStub;
 import static com.exactpro.th2.store.common.Configuration.readConfiguration;
-import static io.grpc.ManagedChannelBuilder.forAddress;
 import static javax.xml.bind.DatatypeConverter.printHexBinary;
 
 public class DemoMessageStore {
@@ -63,7 +57,7 @@ public class DemoMessageStore {
 
     public DemoMessageStore(Configuration configuration) {
         this.configuration = configuration;
-        this.subscribers = createSubscribers(configuration.getRabbitMQ(), configuration.getTh2().getConnectivityAddresses());
+        this.subscribers = createSubscribers(configuration.getRabbitMQ(), configuration.getTh2().getConnectivityQueueNames());
     }
 
     public void init() throws CradleStorageException {
@@ -91,10 +85,10 @@ public class DemoMessageStore {
     }
 
     private List<Subscriber> createSubscribers(RabbitMQConfiguration rabbitMQ,
-                                               Map<String, Address> connectivityServices) {
+                                               Map<String, QueueNames> connectivityServices) {
         List<Subscriber> subscribers = new ArrayList<>();
-        for (Address address : connectivityServices.values()) {
-            Subscriber subscriber = createSubscriber(rabbitMQ, address);
+        for (Map.Entry<String, QueueNames> queueNamesEntry : connectivityServices.entrySet()) {
+            Subscriber subscriber = createSubscriber(rabbitMQ, queueNamesEntry.getValue(), queueNamesEntry.getKey());
             if (subscriber != null) {
                 subscribers.add(subscriber);
             }
@@ -102,28 +96,19 @@ public class DemoMessageStore {
         return Collections.unmodifiableList(subscribers);
     }
 
-    private Subscriber createSubscriber(RabbitMQConfiguration rabbitMQ, Address address) {
-        ManagedChannel channel = forAddress(address.getHost(), address.getPort()).usePlaintext().build();
+    private Subscriber createSubscriber(RabbitMQConfiguration rabbitMQ, QueueNames queueNames, String key) {
         try {
-            ConnectivityBlockingStub connectivityBlockingStub = newBlockingStub(channel);
-            QueueInfo queueInfo = connectivityBlockingStub.getQueueInfo(QueueRequest.newBuilder().build());
-            LOGGER.info("get QueueInfo for {}:{} {}", address.getHost(), address.getPort(), queueInfo);
-            RabbitMqSubscriber outMsgSubscriber = createRabbitMqSubscriber(queueInfo.getOutMsgQueue(),
-                    queueInfo.getExchangeName(), this::storeMessageBatch);
-            RabbitMqSubscriber inMsgSubscriber = createRabbitMqSubscriber(queueInfo.getInMsgQueue(),
-                    queueInfo.getExchangeName(), this::storeMessageBatch);
-            RabbitMqSubscriber outRawMsgSubscriber = createRabbitMqSubscriber(queueInfo.getOutRawMsgQueue(),
-                    queueInfo.getExchangeName(), this::storeRawMessageBatch);
-            RabbitMqSubscriber inRawMsgSubscriber = createRabbitMqSubscriber(queueInfo.getInRawMsgQueue(),
-                    queueInfo.getExchangeName(), this::storeRawMessageBatch);
+            RabbitMqSubscriber outMsgSubscriber = createRabbitMqSubscriber(queueNames.getOutQueueName(),
+                    queueNames.getExchangeName(), this::storeMessageBatch);
+            RabbitMqSubscriber inMsgSubscriber = createRabbitMqSubscriber(queueNames.getInQueueName(),
+                    queueNames.getExchangeName(), this::storeMessageBatch);
+            RabbitMqSubscriber outRawMsgSubscriber = createRabbitMqSubscriber(queueNames.getOutRawQueueName(),
+                    queueNames.getExchangeName(), this::storeRawMessageBatch);
+            RabbitMqSubscriber inRawMsgSubscriber = createRabbitMqSubscriber(queueNames.getInRawQueueName(),
+                    queueNames.getExchangeName(), this::storeRawMessageBatch);
             return new Subscriber(rabbitMQ, inMsgSubscriber, outMsgSubscriber, inRawMsgSubscriber, outRawMsgSubscriber);
         } catch (Exception e) {
-            LOGGER.error("Could not create subscriber for {}:{}", address.getHost(), address.getPort(), e);
-        }
-        finally {
-            if (channel != null) {
-                channel.shutdownNow();
-            }
+            LOGGER.error("Could not create subscriber for '{}' connectivity", key, e);
         }
         return null;
     }
