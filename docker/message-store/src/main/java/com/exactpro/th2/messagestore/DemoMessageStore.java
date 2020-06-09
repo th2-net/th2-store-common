@@ -57,7 +57,7 @@ public class DemoMessageStore {
 
     public DemoMessageStore(Configuration configuration) {
         this.configuration = configuration;
-        this.subscribers = createSubscribers(configuration.getRabbitMQ(), configuration.getTh2().getConnectivityQueueNames());
+        this.subscribers = createSubscribers(configuration.getRabbitMQ(), configuration.getSourceNameToQueueNames());
     }
 
     public void init() throws CradleStorageException {
@@ -166,7 +166,12 @@ public class DemoMessageStore {
     }
 
     private RabbitMqSubscriber createRabbitMqSubscriber(String queueName, String exchangeName, DeliverCallback deliverCallback) {
-        return StringUtils.isEmpty(queueName) ? null : new RabbitMqSubscriber(exchangeName, deliverCallback, null, queueName);
+        if (StringUtils.isEmpty(queueName)) {
+            return null;
+        }  else {
+            LOGGER.info("Subscriber created for '{}':'{}'", exchangeName, queueName);
+            return new RabbitMqSubscriber(exchangeName, deliverCallback, null, queueName);
+        }
     }
 
     private static class Subscriber {
