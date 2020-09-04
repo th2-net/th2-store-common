@@ -1,12 +1,9 @@
-/******************************************************************************
- * Copyright 2009-2020 Exactpro (Exactpro Systems Limited)
- *
+/*******************************************************************************
+ * Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,28 +12,9 @@
  ******************************************************************************/
 package com.exactpro.th2.messagestore;
 
-import com.exactpro.cradle.CradleManager;
-import com.exactpro.cradle.cassandra.CassandraCradleManager;
-import com.exactpro.cradle.cassandra.connection.CassandraConnection;
-import com.exactpro.cradle.messages.MessageToStore;
-import com.exactpro.cradle.messages.StoredMessageBatch;
-import com.exactpro.cradle.utils.CradleStorageException;
-import com.exactpro.th2.RabbitMqSubscriber;
-import com.exactpro.th2.configuration.RabbitMQConfiguration;
-import com.exactpro.th2.configuration.Th2Configuration.QueueNames;
-import com.exactpro.th2.infra.grpc.Message;
-import com.exactpro.th2.infra.grpc.MessageBatch;
-import com.exactpro.th2.infra.grpc.RawMessage;
-import com.exactpro.th2.infra.grpc.RawMessageBatch;
-import com.exactpro.th2.store.common.CassandraConfig;
-import com.exactpro.th2.store.common.Configuration;
-import com.exactpro.th2.store.common.utils.ProtoUtil;
-import com.google.protobuf.MessageLite;
-import com.rabbitmq.client.DeliverCallback;
-import com.rabbitmq.client.Delivery;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.exactpro.cradle.messages.StoredMessageBatch.MAX_MESSAGES_COUNT;
+import static com.exactpro.th2.store.common.Configuration.readConfiguration;
+import static javax.xml.bind.DatatypeConverter.printHexBinary;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -45,9 +23,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import static com.exactpro.cradle.messages.StoredMessageBatch.MAX_MESSAGES_COUNT;
-import static com.exactpro.th2.store.common.Configuration.readConfiguration;
-import static javax.xml.bind.DatatypeConverter.printHexBinary;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.exactpro.cradle.CradleManager;
+import com.exactpro.cradle.cassandra.CassandraCradleManager;
+import com.exactpro.cradle.cassandra.connection.CassandraConnection;
+import com.exactpro.cradle.messages.MessageToStore;
+import com.exactpro.cradle.messages.StoredMessageBatch;
+import com.exactpro.cradle.utils.CradleStorageException;
+import com.exactpro.th2.configuration.RabbitMQConfiguration;
+import com.exactpro.th2.configuration.Th2Configuration.QueueNames;
+import com.exactpro.th2.infra.grpc.Message;
+import com.exactpro.th2.infra.grpc.MessageBatch;
+import com.exactpro.th2.infra.grpc.RawMessage;
+import com.exactpro.th2.infra.grpc.RawMessageBatch;
+import com.exactpro.th2.store.common.CassandraConfig;
+import com.exactpro.th2.store.common.Configuration;
+import com.exactpro.th2.store.common.CustomRabbitSubscriber;
+import com.exactpro.th2.store.common.utils.ProtoUtil;
+import com.google.protobuf.MessageLite;
+import com.rabbitmq.client.DeliverCallback;
+import com.rabbitmq.client.Delivery;
 
 public class DemoMessageStore {
     private final static Logger LOGGER = LoggerFactory.getLogger(DemoMessageStore.class);
@@ -98,13 +96,13 @@ public class DemoMessageStore {
 
     private Subscriber createSubscriber(RabbitMQConfiguration rabbitMQ, QueueNames queueNames, String key) {
         try {
-            RabbitMqSubscriber outMsgSubscriber = createRabbitMqSubscriber(queueNames.getOutQueueName(),
+            CustomRabbitSubscriber outMsgSubscriber = createRabbitMqSubscriber(queueNames.getOutQueueName(),
                     queueNames.getExchangeName(), this::storeMessageBatch);
-            RabbitMqSubscriber inMsgSubscriber = createRabbitMqSubscriber(queueNames.getInQueueName(),
+            CustomRabbitSubscriber inMsgSubscriber = createRabbitMqSubscriber(queueNames.getInQueueName(),
                     queueNames.getExchangeName(), this::storeMessageBatch);
-            RabbitMqSubscriber outRawMsgSubscriber = createRabbitMqSubscriber(queueNames.getOutRawQueueName(),
+            CustomRabbitSubscriber outRawMsgSubscriber = createRabbitMqSubscriber(queueNames.getOutRawQueueName(),
                     queueNames.getExchangeName(), this::storeRawMessageBatch);
-            RabbitMqSubscriber inRawMsgSubscriber = createRabbitMqSubscriber(queueNames.getInRawQueueName(),
+            CustomRabbitSubscriber inRawMsgSubscriber = createRabbitMqSubscriber(queueNames.getInRawQueueName(),
                     queueNames.getExchangeName(), this::storeRawMessageBatch);
             return new Subscriber(rabbitMQ, inMsgSubscriber, outMsgSubscriber, inRawMsgSubscriber, outRawMsgSubscriber);
         } catch (Exception e) {
@@ -165,25 +163,25 @@ public class DemoMessageStore {
         void store(StoredMessageBatch storedMessageBatch) throws IOException;
     }
 
-    private RabbitMqSubscriber createRabbitMqSubscriber(String queueName, String exchangeName, DeliverCallback deliverCallback) {
+    private CustomRabbitSubscriber createRabbitMqSubscriber(String queueName, String exchangeName, DeliverCallback deliverCallback) {
         if (StringUtils.isEmpty(queueName)) {
             return null;
         }  else {
             LOGGER.info("Subscriber created for '{}':'{}'", exchangeName, queueName);
-            return new RabbitMqSubscriber(exchangeName, deliverCallback, null, queueName);
+            return new CustomRabbitSubscriber(exchangeName, deliverCallback, null, queueName);
         }
     }
 
     private static class Subscriber {
         private final RabbitMQConfiguration rabbitMQ;
-        private final RabbitMqSubscriber inSubscriber;
-        private final RabbitMqSubscriber outSubscriber;
-        private final RabbitMqSubscriber inRawSubscriber;
-        private final RabbitMqSubscriber outRawSubscriber;
+        private final CustomRabbitSubscriber inSubscriber;
+        private final CustomRabbitSubscriber outSubscriber;
+        private final CustomRabbitSubscriber inRawSubscriber;
+        private final CustomRabbitSubscriber outRawSubscriber;
 
-        private Subscriber(RabbitMQConfiguration rabbitMQ, RabbitMqSubscriber inSubscriber,
-                           RabbitMqSubscriber outSubscriber, RabbitMqSubscriber inRawMsgSubscriber,
-                           RabbitMqSubscriber outRawMsgSubscriber) {
+        private Subscriber(RabbitMQConfiguration rabbitMQ, CustomRabbitSubscriber inSubscriber,
+                CustomRabbitSubscriber outSubscriber, CustomRabbitSubscriber inRawMsgSubscriber,
+                CustomRabbitSubscriber outRawMsgSubscriber) {
             this.rabbitMQ = rabbitMQ;
             this.inSubscriber = inSubscriber;
             this.outSubscriber = outSubscriber;
@@ -205,7 +203,7 @@ public class DemoMessageStore {
             dispose(outRawSubscriber);
         }
 
-        private void dispose(RabbitMqSubscriber subscriber) {
+        private void dispose(CustomRabbitSubscriber subscriber) {
             if (subscriber == null) {
                 return;
             }
@@ -216,7 +214,7 @@ public class DemoMessageStore {
             }
         }
 
-        private void subscribe(RabbitMqSubscriber subscriber) {
+        private void subscribe(CustomRabbitSubscriber subscriber) {
             if (subscriber == null) {
                 return;
             }
