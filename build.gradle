@@ -6,6 +6,7 @@ apply plugin: 'java'
 apply plugin: 'java-library'
 apply plugin: 'maven-publish'
 
+archivesBaseName = 'th2-store-common'
 group = 'com.exactpro.th2'
 version = release_version
 
@@ -48,6 +49,20 @@ dependencies {
 sourceCompatibility = 11
 targetCompatibility = 11
 
+jar {
+    manifest {
+        attributes(
+                'Created-By':               "${System.getProperty('java.version')} (${System.getProperty('java.vendor')})",
+                'Specification-Title':      '',
+                'Specification-Vendor':     'Exactpro Systems LLC',
+                'Implementation-Title':     project.archivesBaseName,
+                'Implementation-Vendor':    'Exactpro Systems LLC',
+                'Implementation-Vendor-Id': 'com.exactpro',
+                'Implementation-Version':   project.version
+        )
+    }
+}
+
 java {
     withJavadocJar()
     withSourcesJar()
@@ -61,7 +76,7 @@ publishing {
     publications {
         mavenJava(MavenPublication) {
             from components.java
-            artifactId 'th2-store-common'
+            artifactId project.archivesBaseName
         }
     }
 
