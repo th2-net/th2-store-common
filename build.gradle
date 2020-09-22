@@ -11,9 +11,6 @@ version = release_version
 ext {
     sharedDir                   = file("${project.rootDir}/shared")
     vertxVersion                = '3.8.5'
-
-    cradleVersion               = '1.4-SNAPSHOT' //FIXME: Migrate to release
-    th2ConnectivityVersion      = '1.1-SNAPSHOT' //FIXME: Migrate to release
 }
 
 repositories {
