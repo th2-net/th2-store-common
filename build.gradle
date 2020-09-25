@@ -1,50 +1,19 @@
 plugins {
-    id 'com.google.protobuf' version '0.8.8' apply false
+    id 'java'
+    id 'java-library'
+    id 'maven-publish'
     id "com.jfrog.artifactory" version '4.15.1'
 }
 
-allprojects {
-    apply plugin: 'com.jfrog.artifactory'
-
-    artifactoryPublish.skip = true
-
-    artifactory {
-        publish {
-            defaults {
-                // Reference to Gradle publications defined in the build script.
-                // This is how we tell the Artifactory Plugin which artifacts should be
-                // published to Artifactory.
-                publications('mavenJava')
-                publishArtifacts = true
-                publishBuildInfo = true
-                // Properties to be attached to the published artifacts.
-                publishPom = true
-            }
-        }
-    }
-}
-
-subprojects {
-    apply plugin: 'java'
-    apply plugin: 'java-library'
+group = 'com.exactpro.th2'
+version = release_version
 
     ext {
         sharedDir                   = file("${project.rootDir}/shared")
         vertxVersion                = '3.8.5'
-        vertxGrpcVersion            = '1.25.0'
-        junitJupiterEngineVersion   = '5.4.0'
 
-        cradleVersion               = '1.4-SNAPSHOT'
-        th2CommonVersion            = '1.1-SNAPSHOT'
-        th2ConnectivityVersion      = '1.1-SNAPSHOT'
+
     }
-
-    group = 'com.exactpro.th2'
-    version = "${version_major}.${version_minor}-SNAPSHOT"
-
-    sourceCompatibility = 1.11
-    targetCompatibility = 1.11
-
 
     repositories {
         maven {
@@ -57,13 +26,87 @@ subprojects {
             url 'http://artifactory5.exp.exactpro.com/artifactory/th2-schema-snapshot-local'
         }
         maven {
-            name 'Artifactory'
+        name 'Artifactory snapshot'
             url 'http://artifactory5.exp.exactpro.com/artifactory/libs-snapshot'
         }
+    maven {
+        name 'Artifactory release'
+        url 'http://artifactory5.exp.exactpro.com/artifactory/libs-release'
+    }
 
         configurations.all {
             resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
             resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
+    }
+}
+
+dependencies {
+    api platform('com.exactpro.th2:th2-bom:1.0.0-schema-ci.+')
+    implementation 'com.exactpro.cradle:cradle-cassandra'
+    implementation 'com.exactpro.cradle:cradle-core'
+    implementation 'com.exactpro.th2:th2-common'
+
+    implementation "io.vertx:vertx-rx-java2:$vertxVersion"
+}
+
+sourceCompatibility = 11
+targetCompatibility = 11
+
+jar {
+    manifest {
+        attributes(
+                'Created-By':               "${System.getProperty('java.version')} (${System.getProperty('java.vendor')})",
+                'Specification-Title':      '',
+                'Specification-Vendor':     'Exactpro Systems LLC',
+                'Implementation-Title':     project.archivesBaseName,
+                'Implementation-Vendor':    'Exactpro Systems LLC',
+                'Implementation-Vendor-Id': 'com.exactpro',
+                'Implementation-Version':   project.version
+        )
+    }
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+javadoc {
+    (options as StandardJavadocDocletOptions).addBooleanOption("html5", true)
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+
+    repositories {
+        maven {
+            name = 'localRepo'
+            url = sharedDir
+        }
+    }
+}
+
+artifactory {
+    publish {
+        contextUrl = "${artifactory_url}"
+        repository {
+            repoKey = "${artifactory_deploy_repo_key}" // The Artifactory repository key to publish to
+            username = "${artifactory_user}" // The publisher user name
+            password = "${artifactory_password}" // The publisher password
+        }
+        defaults {
+            // Reference to Gradle publications defined in the build script.
+            // This is how we tell the Artifactory Plugin which artifacts should be
+            // published to Artifactory.
+            publications('mavenJava')
+            publishArtifacts = true
+            publishBuildInfo = true
+            // Properties to be attached to the published artifacts.
+            publishPom = true
         }
     }
 }
