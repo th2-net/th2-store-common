@@ -61,7 +61,7 @@ public abstract class AbstractStorage<T> {
         if (monitor != null) {
             try {
                 monitor.unsubscribe();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 logger.error("Can not unsubscribe from queues", e);
             }
         }

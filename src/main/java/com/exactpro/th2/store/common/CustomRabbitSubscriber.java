@@ -20,7 +20,6 @@ import static com.exactpro.th2.configuration.RabbitMQConfiguration.getEnvRabbitM
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Objects;
 import java.util.concurrent.TimeoutException;
 
@@ -29,8 +28,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.exactpro.th2.RabbitMqSubscriber;
-import com.rabbitmq.client.AMQP.Queue.DeclareOk;
 import com.rabbitmq.client.CancelCallback;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -40,7 +37,7 @@ import com.rabbitmq.client.DeliverCallback;
 public class CustomRabbitSubscriber implements Closeable {
 
     private static final int CLOSE_TIMEOUT = 1_000;
-    private static final Logger logger = LoggerFactory.getLogger(RabbitMqSubscriber.class);
+    private static final Logger logger = LoggerFactory.getLogger(CustomRabbitSubscriber.class);
     private final String exchangeName;
     private final String[] queues;
     private final DeliverCallback deliverCallback;
