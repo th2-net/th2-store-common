@@ -35,10 +35,10 @@ repositories {
 }
 
 dependencies {
-    api platform('com.exactpro.th2:th2-bom:1.0.1')
+    api platform('com.exactpro.th2:bom:2.0.+')
     implementation 'com.exactpro.cradle:cradle-cassandra'
     implementation 'com.exactpro.cradle:cradle-core'
-    implementation 'com.exactpro.th2:th2-common'
+    implementation 'com.exactpro.th2:common'
 
     implementation "io.vertx:vertx-rx-java2:$vertxVersion"
 }
