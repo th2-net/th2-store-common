@@ -28,17 +28,17 @@ import com.exactpro.cradle.testevents.TestEventBatchToStore;
 import com.exactpro.cradle.testevents.TestEventToStore;
 import com.exactpro.cradle.testevents.TestEventToStoreBuilder;
 import com.exactpro.cradle.utils.CradleStorageException;
-import com.exactpro.th2.infra.grpc.Event;
-import com.exactpro.th2.infra.grpc.EventBatchOrBuilder;
-import com.exactpro.th2.infra.grpc.EventIDOrBuilder;
-import com.exactpro.th2.infra.grpc.EventOrBuilder;
-import com.exactpro.th2.infra.grpc.EventStatus;
-import com.exactpro.th2.infra.grpc.Message;
-import com.exactpro.th2.infra.grpc.MessageID;
-import com.exactpro.th2.infra.grpc.MessageIDOrBuilder;
-import com.exactpro.th2.infra.grpc.MessageMetadata;
-import com.exactpro.th2.infra.grpc.RawMessage;
-import com.exactpro.th2.infra.grpc.RawMessageMetadata;
+import com.exactpro.th2.common.grpc.Event;
+import com.exactpro.th2.common.grpc.EventBatchOrBuilder;
+import com.exactpro.th2.common.grpc.EventIDOrBuilder;
+import com.exactpro.th2.common.grpc.EventOrBuilder;
+import com.exactpro.th2.common.grpc.EventStatus;
+import com.exactpro.th2.common.grpc.Message;
+import com.exactpro.th2.common.grpc.MessageID;
+import com.exactpro.th2.common.grpc.MessageIDOrBuilder;
+import com.exactpro.th2.common.grpc.MessageMetadata;
+import com.exactpro.th2.common.grpc.RawMessage;
+import com.exactpro.th2.common.grpc.RawMessageMetadata;
 import com.google.protobuf.TimestampOrBuilder;
 
 public class ProtoUtil {
@@ -119,7 +119,7 @@ public class ProtoUtil {
             .build();
     }
 
-    public static Direction toCradleDirection(com.exactpro.th2.infra.grpc.Direction protoDirection) {
+    public static Direction toCradleDirection(com.exactpro.th2.common.grpc.Direction protoDirection) {
         switch (protoDirection) {
         case FIRST:
             return Direction.FIRST;

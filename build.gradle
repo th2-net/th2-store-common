@@ -40,6 +40,8 @@ dependencies {
     implementation 'com.exactpro.cradle:cradle-core'
     implementation 'com.exactpro.th2:common'
 
+    implementation 'com.google.protobuf:protobuf-java-util'
+
     implementation "io.vertx:vertx-rx-java2:$vertxVersion"
 }
 
