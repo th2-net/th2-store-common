@@ -30,6 +30,7 @@ import static java.lang.String.format;
 import static java.lang.System.getenv;
 import static org.apache.commons.lang3.ObjectUtils.defaultIfNull;
 
+//FIXME: Is this class redundant?
 public class Configuration extends MicroserviceConfiguration {
 
     public static final String ENV_CRADLE_INSTANCE_NAME = "CRADLE_INSTANCE_NAME";

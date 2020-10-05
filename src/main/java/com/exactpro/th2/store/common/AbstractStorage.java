@@ -13,8 +13,6 @@
 
 package com.exactpro.th2.store.common;
 
-import java.io.IOException;
-
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +41,7 @@ public abstract class AbstractStorage<T> {
                 try {
                     handle(delivery);
                 } catch (Exception e) {
-                    logger.warn("Can not handle delivery from consumer = " + tag);
+                    logger.warn("Can not handle delivery from consumer = {}", tag, e);
                 }
             }, getAttributes());
             if (monitor != null) {

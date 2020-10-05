@@ -34,6 +34,7 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
 
+//FIXME: Is this class redundant?
 public class CustomRabbitSubscriber implements Closeable {
 
     private static final int CLOSE_TIMEOUT = 1_000;
