@@ -130,6 +130,17 @@ public class ProtoUtil {
         }
     }
 
+    public static com.exactpro.th2.common.grpc.Direction toProtoDirection(Direction cradleDirection) {
+        switch (cradleDirection) {
+        case FIRST:
+            return com.exactpro.th2.common.grpc.Direction.FIRST;
+        case SECOND:
+            return com.exactpro.th2.common.grpc.Direction.SECOND;
+        default:
+            throw new IllegalArgumentException("Unknown the direction type '" + cradleDirection + '\'');
+        }
+    }
+
     public static Instant toInstant(TimestampOrBuilder timestamp) {
         return Instant.ofEpochSecond(timestamp.getSeconds(), timestamp.getNanos());
     }

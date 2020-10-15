@@ -39,6 +39,7 @@ dependencies {
     implementation 'com.exactpro.cradle:cradle-cassandra'
     implementation 'com.exactpro.cradle:cradle-core'
     implementation 'com.exactpro.th2:common'
+    implementation 'com.exactpro.th2:grpc-common'
 
     implementation 'com.google.protobuf:protobuf-java-util'
 
