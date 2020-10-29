@@ -36,6 +36,7 @@ repositories {
 
 dependencies {
     api platform('com.exactpro.th2:bom:2.0.+')
+
     implementation 'com.exactpro.cradle:cradle-cassandra'
     implementation 'com.exactpro.cradle:cradle-core'
     implementation 'com.exactpro.th2:common'
