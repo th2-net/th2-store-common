@@ -15,17 +15,31 @@
  */
 package com.exactpro.th2.store.common.utils;
 
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.exactpro.cradle.CradleManager;
 import com.exactpro.cradle.cassandra.CassandraCradleManager;
 import com.exactpro.cradle.cassandra.connection.CassandraConnection;
 import com.exactpro.cradle.cassandra.connection.CassandraConnectionSettings;
+import com.exactpro.cradle.utils.CradleStorageException;
 import com.exactpro.th2.common.schema.cradle.CradleConfiguration;
 
 public class CradleUtil {
 
+    /**
+     * @deprecated please use {@link #createCradleManager(CradleConfiguration, String)}
+     */
+    @Deprecated
     public static CradleManager createCradleManager(CradleConfiguration cradleConfiguration) {
+        try {
+            return createCradleManager(cradleConfiguration, null);
+        } catch (CradleStorageException e) {
+            throw new IllegalStateException("Cradle manger initialisation filed", e);
+        }
+    }
+
+    public static CradleManager createCradleManager(CradleConfiguration cradleConfiguration, String instanceName) throws CradleStorageException {
         CassandraConnectionSettings cassandraConnectionSettings = new CassandraConnectionSettings(
                 cradleConfiguration.getDataCenter(),
                 cradleConfiguration.getHost(),
@@ -40,6 +54,8 @@ public class CradleUtil {
             cassandraConnectionSettings.setPassword(cradleConfiguration.getPassword());
         }
 
-        return new CassandraCradleManager(new CassandraConnection(cassandraConnectionSettings));
+        CassandraCradleManager cassandraCradleManager = new CassandraCradleManager(new CassandraConnection(cassandraConnectionSettings));
+        cassandraCradleManager.init(ObjectUtils.defaultIfNull(instanceName, "unknown"));
+        return cassandraCradleManager;
     }
 }
