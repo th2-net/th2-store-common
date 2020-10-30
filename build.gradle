@@ -22,10 +22,6 @@ version = release_version
         }
         mavenCentral()
         maven {
-            name 'Schema snapshot'
-            url 'http://artifactory5.exp.exactpro.com/artifactory/th2-schema-snapshot-local'
-        }
-        maven {
         name 'Artifactory snapshot'
             url 'http://artifactory5.exp.exactpro.com/artifactory/libs-snapshot'
         }
