@@ -63,12 +63,6 @@ public abstract class AbstractStorage<T> {
                 logger.error("Can not unsubscribe from queues", e);
             }
         }
-
-        try {
-            cradleManager.dispose();
-        } catch (CradleStorageException e) {
-            logger.error(e.getMessage(), e);
-        }
     }
 
     public abstract void handle(T delivery);
