@@ -37,10 +37,7 @@ version = release_version
 }
 
 dependencies {
-    api platform('com.exactpro.th2:bom:2.1.+')
-
-    implementation 'com.exactpro.cradle:cradle-cassandra'
-    implementation 'com.exactpro.cradle:cradle-core'
+    api platform('com.exactpro.th2:bom:2.2.+')
     implementation 'com.exactpro.th2:common'
     implementation 'com.exactpro.th2:grpc-common'
 
