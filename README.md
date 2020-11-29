@@ -1,8 +1,4 @@
-== Help
+# th2 store common library (Java)
 
-* https://vertx.io/docs/[Vert.x Documentation]
-* https://stackoverflow.com/questions/tagged/vert.x?sort=newest&pageSize=15[Vert.x Stack Overflow]
-* https://groups.google.com/forum/?fromgroups#!forum/vertx[Vert.x User Group]
-* https://gitter.im/eclipse-vertx/vertx-users[Vert.x Gitter]
-
-
+This project contains the storage abstract class with boilerplate code to interact with the message router from the [th2-common](https://github.com/th2-net/th2-common-j).
+It also has got utility classes to convert th2's messages and events discribed in [th2-grpc-common](https://github.com/th2-net/th2-grpc-common/blob/master/src/main/proto/th2_grpc_common/common.proto "common.proto") to compatible with th2 storage format.
