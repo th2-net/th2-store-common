@@ -13,12 +13,16 @@
 
 package com.exactpro.th2.store.common;
 
+import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.exactpro.cradle.CradleManager;
-import com.exactpro.cradle.utils.CradleStorageException;
+import com.exactpro.cradle.CradleStorage;
 import com.exactpro.th2.common.schema.message.MessageRouter;
 import com.exactpro.th2.common.schema.message.SubscriberMonitor;
 
@@ -26,13 +30,15 @@ public abstract class AbstractStorage<T> {
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass() + "@" + this.hashCode());
 
-    private final MessageRouter<T> router;
+    protected final MessageRouter<T> router;
+    protected final CradleStorage cradleStorage;
     private final CradleManager cradleManager;
     private SubscriberMonitor monitor;
 
     public AbstractStorage(MessageRouter<T> router, @NotNull CradleManager cradleManager) {
-        this.cradleManager = cradleManager;
-        this.router = router;
+        this.cradleManager = requireNonNull(cradleManager, "Cradle manager can't be null");
+        this.router = requireNonNull(router, "Message router can't be null");
+        this.cradleStorage = cradleManager.getStorage();
     }
 
     public void start() {

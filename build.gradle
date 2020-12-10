@@ -33,9 +33,9 @@ version = release_version
 }
 
 dependencies {
-    api platform('com.exactpro.th2:bom:2.3.+')
-    implementation 'com.exactpro.th2:common'
-    implementation 'com.exactpro.th2:grpc-common'
+    api platform('com.exactpro.th2:bom:2.9.1')
+    implementation 'com.exactpro.th2:common:2.7.0'
+    implementation 'com.exactpro.th2:grpc-common:2.3.2'
 
     implementation 'com.google.protobuf:protobuf-java-util'
 
