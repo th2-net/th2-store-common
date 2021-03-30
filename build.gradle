@@ -10,7 +10,7 @@ group = 'com.exactpro.th2'
 version = release_version
 
 ext {
-    sharedDir                   = file("${projectrootDir}/shared")
+    sharedDir                   = file("${project.rootDir}/shared")
     vertxVersion                = '3.8.5'
 }
 
