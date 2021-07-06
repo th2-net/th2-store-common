@@ -13,18 +13,15 @@
 
 package com.exactpro.th2.store.common;
 
-import static java.util.Objects.requireNonNull;
-
-import java.util.Objects;
-
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.exactpro.cradle.CradleManager;
 import com.exactpro.cradle.CradleStorage;
 import com.exactpro.th2.common.schema.message.MessageRouter;
 import com.exactpro.th2.common.schema.message.SubscriberMonitor;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static java.util.Objects.requireNonNull;
 
 public abstract class AbstractStorage<T> {
 
@@ -46,6 +43,9 @@ public abstract class AbstractStorage<T> {
             monitor = router.subscribeAll((tag, delivery) -> {
                 try {
                     handle(delivery);
+                } catch (InterruptedException ex) {
+                    logger.warn("Delivery processing was interrupted");
+                    throw ex;
                 } catch (Exception e) {
                     logger.warn("Can not handle delivery from consumer = {}", tag, e);
                 }
@@ -71,7 +71,7 @@ public abstract class AbstractStorage<T> {
         }
     }
 
-    public abstract void handle(T delivery);
+    public abstract void handle(T delivery) throws InterruptedException;
 
     protected CradleManager getCradleManager() {
         return cradleManager;
