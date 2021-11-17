@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2020 Exactpro (Exactpro Systems Limited)
+ * Copyright 2020-2021 Exactpro (Exactpro Systems Limited)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.exactpro.th2.store.common.utils;
 
 import java.time.Instant;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
+import com.exactpro.cradle.BookId;
+import com.exactpro.cradle.CradleStorage;
 import com.exactpro.cradle.Direction;
 import com.exactpro.cradle.messages.MessageToStore;
 import com.exactpro.cradle.messages.MessageToStoreBuilder;
 import com.exactpro.cradle.messages.StoredMessageId;
-import com.exactpro.cradle.testevents.StoredTestEvent;
-import com.exactpro.cradle.testevents.StoredTestEventBatch;
 import com.exactpro.cradle.testevents.StoredTestEventId;
 import com.exactpro.cradle.testevents.TestEventBatchToStore;
+import com.exactpro.cradle.testevents.TestEventSingleToStore;
+import com.exactpro.cradle.testevents.TestEventSingleToStoreBuilder;
 import com.exactpro.cradle.testevents.TestEventToStore;
-import com.exactpro.cradle.testevents.TestEventToStoreBuilder;
 import com.exactpro.cradle.utils.CradleStorageException;
 import com.exactpro.th2.common.grpc.Event;
 import com.exactpro.th2.common.grpc.EventBatchOrBuilder;
@@ -39,26 +43,45 @@ import com.exactpro.th2.common.grpc.MessageIDOrBuilder;
 import com.exactpro.th2.common.grpc.MessageMetadata;
 import com.exactpro.th2.common.grpc.RawMessage;
 import com.exactpro.th2.common.grpc.RawMessageMetadata;
+import com.google.protobuf.Timestamp;
 import com.google.protobuf.TimestampOrBuilder;
 
 public class ProtoUtil {
-
-    public static StoredMessageId toStoredMessageId(MessageIDOrBuilder messageId) {
-        return new StoredMessageId(messageId.getConnectionId().getSessionAlias(), toCradleDirection(messageId.getDirection()), messageId.getSequence());
+    public static StoredMessageId toStoredMessageId(MessageIDOrBuilder messageId, TimestampOrBuilder timestamp) {
+        return new StoredMessageId(
+                new BookId(messageId.getBookName()),
+                messageId.getConnectionId().getSessionAlias(),
+                toCradleDirection(messageId.getDirection()),
+                toInstant(timestamp),
+                messageId.getSequence()
+        );
     }
 
-    public static StoredTestEventBatch toCradleBatch(EventBatchOrBuilder protoEventBatch) throws CradleStorageException {
-        StoredTestEventBatch cradleEventsBatch = StoredTestEvent.newStoredTestEventBatch(TestEventBatchToStore.builder()
-            .parentId(toCradleEventID(protoEventBatch.getParentEventId()))
-            .build());
+    @Deprecated
+    public static TestEventBatchToStore toCradleBatch(
+            EventBatchOrBuilder protoEventBatch,
+            String scope,
+            String parentScope,
+            Timestamp startTimestamp
+    ) throws CradleStorageException {
+        TestEventBatchToStore cradleBatch = TestEventToStore
+            .batchBuilder(CradleStorage.DEFAULT_MAX_TEST_EVENT_BATCH_SIZE)
+            .id(new BookId(protoEventBatch.getParentEventId().getBookName()), scope, toInstant(startTimestamp), UUID.randomUUID().toString())
+            .parentId(toCradleEventID(protoEventBatch.getParentEventId(), scope, startTimestamp))
+            .build();
         for (Event protoEvent : protoEventBatch.getEventsList()) {
-            cradleEventsBatch.addTestEvent(toCradleEvent(protoEvent));
+            cradleBatch.addTestEvent(toCradleEvent(protoEvent, scope, parentScope, startTimestamp));
         }
-        return cradleEventsBatch;
+        return cradleBatch;
     }
 
-    public static StoredTestEventId toCradleEventID(EventIDOrBuilder protoEventID) {
-        return new StoredTestEventId(String.valueOf(protoEventID.getId()));
+    public static StoredTestEventId toCradleEventID(EventIDOrBuilder protoEventID, String scope, TimestampOrBuilder startTimestamp) {
+        return new StoredTestEventId(
+                new BookId(protoEventID.getBookName()),
+                scope,
+                toInstant(startTimestamp),
+                String.valueOf(protoEventID.getId())
+        );
     }
 
     /**
@@ -75,47 +98,55 @@ public class ProtoUtil {
         }
     }
 
-    public static TestEventToStore toCradleEvent(EventOrBuilder protoEvent) {
-        TestEventToStoreBuilder builder = TestEventToStore.builder()
-            .id(toCradleEventID(protoEvent.getId()))
+    public static TestEventSingleToStore toCradleEvent(
+            EventOrBuilder protoEvent,
+            String scope,
+            String parentScope,
+            Timestamp parentTimestamp
+    ) throws CradleStorageException {
+        TestEventSingleToStoreBuilder cradleEventBuilder = TestEventToStore
+            .singleBuilder()
+            .id(toCradleEventID(protoEvent.getId(), scope, protoEvent.getStartTimestamp()))
             .name(protoEvent.getName())
             .type(protoEvent.getType())
             .success(isSuccess(protoEvent.getStatus()))
+            .messages(protoEvent.getAttachedMessageIdsList().stream()
+                    .map(messageId -> toStoredMessageId(messageId, protoEvent.getStartTimestamp()))
+                    .collect(Collectors.toSet()))
             .content(protoEvent.getBody().toByteArray());
 
         if (protoEvent.hasParentId()) {
-            builder.parentId(toCradleEventID(protoEvent.getParentId()));
-        }
-        if (protoEvent.hasStartTimestamp()) {
-            builder.startTimestamp(toInstant(protoEvent.getStartTimestamp()));
+            cradleEventBuilder.parentId(toCradleEventID(protoEvent.getParentId(), parentScope, parentTimestamp));
         }
         if (protoEvent.hasEndTimestamp()) {
-            builder.endTimestamp(toInstant(protoEvent.getEndTimestamp()));
+            cradleEventBuilder.endTimestamp(toInstant(protoEvent.getEndTimestamp()));
         }
-        return builder.build();
+        return cradleEventBuilder.build();
     }
 
-    public static MessageToStore toCradleMessage(Message protoMessage) {
+    public static MessageToStore toCradleMessage(Message protoMessage) throws CradleStorageException {
         MessageMetadata metadata = protoMessage.getMetadata();
         MessageID messageID = metadata.getId();
         return new MessageToStoreBuilder()
-            .streamName(messageID.getConnectionId().getSessionAlias())
-            .content(protoMessage.toByteArray())
-            .timestamp(toInstant(metadata.getTimestamp()))
+            .bookId(new BookId(protoMessage.getMetadata().getId().getBookName()))
+            .sessionAlias(messageID.getConnectionId().getSessionAlias())
             .direction(toCradleDirection(messageID.getDirection()))
-            .index(messageID.getSequence())
+            .timestamp(toInstant(metadata.getTimestamp()))
+            .sequence(messageID.getSequence())
+            .content(protoMessage.toByteArray())
             .build();
     }
 
-    public static MessageToStore toCradleMessage(RawMessage protoRawMessage) {
+    public static MessageToStore toCradleMessage(RawMessage protoRawMessage) throws CradleStorageException {
         RawMessageMetadata metadata = protoRawMessage.getMetadata();
         MessageID messageID = metadata.getId();
         return new MessageToStoreBuilder()
-            .streamName(messageID.getConnectionId().getSessionAlias())
-            .content(protoRawMessage.toByteArray())
-            .timestamp(toInstant(metadata.getTimestamp()))
+            .bookId(new BookId(protoRawMessage.getMetadata().getId().getBookName()))
+            .sessionAlias(messageID.getConnectionId().getSessionAlias())
             .direction(toCradleDirection(messageID.getDirection()))
-            .index(messageID.getSequence())
+            .timestamp(toInstant(metadata.getTimestamp()))
+            .sequence(messageID.getSequence())
+            .content(protoRawMessage.toByteArray())
             .build();
     }
 
